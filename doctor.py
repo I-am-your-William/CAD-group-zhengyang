@@ -120,7 +120,7 @@ back_btn.place(height=70,width=200, x=100, y=300)
 History_label=Label(lfs_right_panel2, text="History", font=("Helvetica", 24),background="#FFFFFF")
 History_label.pack()
 
-textSignUp=tk.Label(frame2,text="Patient1:", font='Roboto 16',fg="#7F00FF",bg="#FFFFFF")
+textSignUp=tk.Label(frame2,text="Patient:", font='Roboto 16',fg="#7F00FF",bg="#FFFFFF")
 textSignUp.pack()
 textSignUp.place(x=100,y=150)
 comboSignup=ttk.Combobox(frame2,values=["Patient1","Patient2","Patient3","Patient4","Patient5"],width=30)
