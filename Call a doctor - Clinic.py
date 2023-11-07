@@ -1,4 +1,5 @@
 import tkinter as tk
+import sqlite3
 from tkinter import *
 from tkinter import ttk
 from PIL import ImageTk, Image
@@ -17,16 +18,52 @@ class Application(tk.Tk):
 
         self.frames = {}
 
-        for F in (RegisterClinic, RegisterFounder, ClinicHomepage, DoctorList, UploadDoctor, ManageDoctor,):
+        for F in (LoginClinic, RegisterClinic, RegisterFounder, ClinicAccount, ClinicPending
+                  , ClinicHomepage, DoctorList, UploadDoctor, ManageDoctor,):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.show_frame(RegisterClinic)
+        self.show_frame(LoginClinic)
 
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.tkraise()
+
+class LoginClinic(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        self.login_clinic = Frame(self, background="white")
+        self.login_clinic.place(height=700, width=1000, x=0, y=0)
+
+        image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
+        label_width, label_height = 200, 160
+        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  
+        image = ImageTk.PhotoImage(image)
+        label = Label(self.login_clinic, image=image)
+        label.image = image
+        label.place(height=label_height, width=label_width, x=400, y=0)
+
+        heading_label = Label(self.login_clinic, text="Clinic Login", font=("Helvetica", 22, "bold"), background="white")
+        heading_label.place(x=416, y=160)
+
+        self.clnloginusername_label = Label(self.login_clinic, text="Username", font=(25), background="white")
+        self.clnloginusername_label.place(x=330, y=250)
+        self.clnloginusername_label = Entry(self.login_clinic)
+        self.clnloginusername_label.place(height=30, width=350, x=330, y=275)
+
+        self.clnloginpassword_label = Label(self.login_clinic, text="Password", font=(25), background="white")
+        self.clnloginpassword_label.place(x=330, y=350)
+        self.clnloginpassword_label = Entry(self.login_clinic)
+        self.clnloginpassword_label.place(height=30, width=350, x=330, y=375)
+
+        login_btn = Button(self.login_clinic, text = "Login", background="thistle")
+        login_btn.place(height=30, width=100,x=447, y=470)
+
+        goRegister_btn = Button(self.login_clinic, text="Don't have an account ?", font=('Helvetica', 13), borderwidth=0, background="white", command=lambda: controller.show_frame(RegisterClinic))
+        goRegister_btn.place(height=30, width=250, x=380, y=610)
 
 class RegisterClinic(tk.Frame):
     def __init__(self, parent, controller):
@@ -54,13 +91,13 @@ class RegisterClinic(tk.Frame):
 
         self.clinictime_label = Label(self.register_clinic, text="Clinic operation time", font=(25), background="white")
         self.clinictime_label.place(x=100, y=310)
-        self.clinictime_label = Entry(self.register_clinic)
-        self.clinictime_label.place(height=30, width=350, x=100, y=335)
+        self.clinictime_label_entry = Entry(self.register_clinic)
+        self.clinictime_label_entry.place(height=30, width=350, x=100, y=335)
 
         self.cliniccoordinates_label = Label(self.register_clinic, text="Clinic location coordinates", font=(25), background="white")
         self.cliniccoordinates_label.place(x=100, y=390)
-        self.cliniccoordinates_label = Entry(self.register_clinic)
-        self.cliniccoordinates_label.place(height=30, width=350, x=100, y=415)
+        self.cliniccoordinates_label_entry = Entry(self.register_clinic)
+        self.cliniccoordinates_label_entry.place(height=30, width=350, x=100, y=415)
 
         self.clinicaddress_label = Label(self.register_clinic, text="Clinic address", font=(25), background="white")
         self.clinicaddress_label.place(x=100, y=470)
@@ -69,21 +106,31 @@ class RegisterClinic(tk.Frame):
 
         self.cliniccontact_label = Label(self.register_clinic, text="Clinic contact number", font=(25), background="white")
         self.cliniccontact_label.place(x=570, y=310)
-        self.cliniccontact_label = Entry(self.register_clinic)
-        self.cliniccontact_label.place(height=30, width=350, x=570, y=335)
+        self.cliniccontact_label_entry = Entry(self.register_clinic)
+        self.cliniccontact_label_entry.place(height=30, width=350, x=570, y=335)
 
         self.clinicregno_label = Label(self.register_clinic, text="Clinic registration nummber", font=(25), background="white")
         self.clinicregno_label.place(x=570, y=390)
-        self.clinicregno_label = Entry(self.register_clinic)
-        self.clinicregno_label.place(height=30, width=350, x=570, y=415)
+        self.clinicregno_label_entry = Entry(self.register_clinic)
+        self.clinicregno_label_entry.place(height=30, width=350, x=570, y=415)
 
         self.clinicdesc_label = Label(self.register_clinic, text="Clinic description", font=(25), background="white")
         self.clinicdesc_label.place(x=570, y=470)
-        self.clinicdesc_label = Entry(self.register_clinic)
-        self.clinicdesc_label.place(height=80, width=350, x=570, y=495)
+        self.clinicdesc_label_entry = Entry(self.register_clinic)
+        self.clinicdesc_label_entry.place(height=80, width=350, x=570, y=495)
 
         nxtTOfounder_btn = Button(self.register_clinic, text = "Next", background="thistle",command=lambda: controller.show_frame(RegisterFounder))
         nxtTOfounder_btn.place(height=30, width=100,x=450, y=590)
+
+    def get_clinic_information(self):
+        clinic_name = self.clinicname_label_entry.get()
+        clinic_time = self.clinictime_label_entry.get()
+        clinic_coordinates = self.cliniccoordinates_label_entry.get()
+        clinic_address = self.clinicaddress_label_entry.get()
+        clinic_contact= self.cliniccontact_label_entry.get()
+        clinic_registration_no = self.clinicregno_label_entry.get()
+        clinic_description = self.clinicdesc_label_entry.get()
+        return clinic_name, clinic_time, clinic_coordinates, clinic_address, clinic_contact, clinic_registration_no, clinic_description
 
 class RegisterFounder(tk.Frame):
     def __init__(self, parent, controller):
@@ -106,21 +153,114 @@ class RegisterFounder(tk.Frame):
 
         self.foundername_label = Label(self.register_founder, text="Founder full name", font=(25), background="white")
         self.foundername_label.place(x=330, y=250)
-        self.foundername_label = Entry(self.register_founder)
-        self.foundername_label.place(height=30, width=350, x=330, y=275)
+        self.foundername_label_entry = Entry(self.register_founder)
+        self.foundername_label_entry.place(height=30, width=350, x=330, y=275)
 
         self.foundercontact_label = Label(self.register_founder, text="Founder contact", font=(25), background="white")
         self.foundercontact_label.place(x=330, y=350)
-        self.foundercontact_label = Entry(self.register_founder)
-        self.foundercontact_label.place(height=30, width=350, x=330, y=375)
+        self.foundercontact_label_entry = Entry(self.register_founder)
+        self.foundercontact_label_entry.place(height=30, width=350, x=330, y=375)
 
         self.founderemail_label = Label(self.register_founder, text="Founder email address", font=(25), background="white")
         self.founderemail_label.place(x=330, y=450)
-        self.founderemail_label = Entry(self.register_founder)
-        self.founderemail_label.place(height=30, width=350, x=330, y=475)
+        self.founderemail_label_entry = Entry(self.register_founder)
+        self.founderemail_label_entry.place(height=30, width=350, x=330, y=475)
 
-        nxtTOsignup_btn = Button(self.register_founder, text = "Send request to Call A Doctor",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
-        nxtTOsignup_btn.place(height=30, width=250,x=380, y=570)
+        nxtTOsignup_btn = Button(self.register_founder, text = "Next",background="thistle",command=lambda: controller.show_frame(ClinicAccount))
+        nxtTOsignup_btn.place(height=30, width=100,x=450, y=570)
+
+    def get_clinic_founder(self):
+        founder_name = self.foundername_label_entry.get()
+        founder_contact = self.foundercontact_label_entry.get()
+        founder_email = self.founderemail_label_entry.get()
+        return founder_name, founder_contact, founder_email
+
+class ClinicAccount(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        self.clinic_account = Frame(self, background="white")
+        self.clinic_account.place(height=700, width=1000, x=0, y=0)
+
+        image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
+        label_width, label_height = 200, 160
+        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  
+        image = ImageTk.PhotoImage(image)
+        label = Label(self.clinic_account, image=image)
+        label.image = image
+        label.place(height=label_height, width=label_width, x=400, y=0)
+
+        heading_label = Label(self.clinic_account, text="Clinic Sign Up", font=("Helvetica", 22, "bold"), background="white")
+        heading_label.place(x=416, y=145)
+
+        self.clnregusername_label = Label(self.clinic_account, text="Username", font=(25), background="white")
+        self.clnregusername_label.place(x=330, y=250)
+        self.clnregusername_label_entry = Entry(self.clinic_account)
+        self.clnregusername_label_entry.place(height=30, width=350, x=330, y=275)
+
+        self.clnregpassword_label = Label(self.clinic_account, text="Password", font=(25), background="white")
+        self.clnregpassword_label.place(x=330, y=350)
+        self.clnloginpassword_label_entry = Entry(self.clinic_account)
+        self.clnloginpassword_label_entry.place(height=30, width=350, x=330, y=375)
+
+        clinicsignup_btn = Button(self.clinic_account, text="Send request to Call A Doctor", background="thistle",
+                                  command=self.submit_clinic_registration)
+        clinicsignup_btn.place(height=30, width=250, x=380, y=470)
+
+    def submit_clinic_registration(self):
+        clinic_information = self.controller.frames[RegisterClinic].get_clinic_information()
+        clinic_founder = self.controller.frames[RegisterFounder].get_clinic_founder()
+        clinic_username = self.clnregusername_label_entry.get()
+        clinic_password = self.clnloginpassword_label_entry.get()
+
+        conn = sqlite3.connect('CAD_Database.db')
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ClinicInformation (
+                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                clinic_name TEXT NOT NULL,
+                clinic_operation_time TEXT NOT NULL,
+                clinic_coordinates TEXT NOT NULL,
+                clinic_address TEXT NOT NULL,
+                clinic_contact INT NOT NULL,
+                clinic_registration_no INT NOT NULL,
+                clinic_description TEXT NOT NULL,
+                founder_name TEXT NOT NULL,
+                founder_contact INT NOT NULL,
+                founder_email TEXT NOT NULL,
+                clinic_username TEXT NOT NULL,
+                clinic_password TEXT NOT NULL,
+                status INT NOT NULL
+            )
+        ''')
+
+        cursor.execute('''
+            INSERT INTO ClinicInformation (clinic_name, clinic_operation_time, clinic_coordinates,
+                                        clinic_address, clinic_contact, clinic_registration_no,
+                                        clinic_description, founder_name, founder_contact,
+                                        founder_email, clinic_username, clinic_password, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (clinic_information[0], clinic_information[1], clinic_information[2], clinic_information[3],
+            clinic_information[4], clinic_information[5], clinic_information[6], clinic_founder[0],
+            clinic_founder[1], clinic_founder[2], clinic_username, clinic_password, 0))
+
+        conn.commit()
+        conn.close()
+
+        self.controller.show_frame(ClinicPending)
+
+class ClinicPending(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        self.clinic_pending = Frame(self, background="white")
+        self.clinic_pending.place(height=700, width=1000, x=0, y=0)
+
+        self.patient_label = Label(self.clinic_pending, text="Please wait. Your account is being processed.", font=(15), background="white")
+        self.patient_label.place(height=70,width=480, x=200, y=160) 
 
 class ClinicHomepage(tk.Frame):
     def __init__(self, parent, controller):
@@ -144,7 +284,7 @@ class ClinicHomepage(tk.Frame):
         heading_label = Label(self.clinic_homepage, text="Clinic Home", font=("Helvetica", 25, "bold"), background="cornsilk")
         heading_label.place(x=130, y=20)
 
-        clinicLogout_btn = Button(self.clinic_homepage, text = "Logout",background="thistle",command=lambda: controller.show_frame(RegisterClinic))
+        clinicLogout_btn = Button(self.clinic_homepage, text = "Logout",background="thistle",command=lambda: controller.show_frame(LoginClinic))
         clinicLogout_btn.place(height=30, width=60, x=910, y=25)
 
         self.clinicleft_frame = Frame(self.clinic_homepage , background="cornsilk")
@@ -258,8 +398,6 @@ class UploadDoctor(tk.Frame):
 
         clinicupload_btn = Button(self.upload_doctor, text = " Upload",background="thistle",command=lambda: controller.show_frame(DoctorList))
         clinicupload_btn.place(height=30, width=90, x=485, y=610)
-
-
 
 class ManageDoctor(tk.Frame):
     def __init__(self, parent, controller):
