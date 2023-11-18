@@ -59,7 +59,7 @@ class LoginClinic(tk.Frame):
         self.clnloginpassword_label = Entry(self.login_clinic)
         self.clnloginpassword_label.place(height=30, width=350, x=330, y=375)
 
-        login_btn = Button(self.login_clinic, text = "Login", background="thistle")
+        login_btn = Button(self.login_clinic, text = "Login", background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
         login_btn.place(height=30, width=100,x=447, y=470)
 
         goRegister_btn = Button(self.login_clinic, text="Don't have an account ?", font=('Helvetica', 13), borderwidth=0, background="white", command=lambda: controller.show_frame(RegisterClinic))
@@ -219,7 +219,7 @@ class ClinicAccount(tk.Frame):
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ClinicInformation (
-                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                clinic_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 clinic_name TEXT NOT NULL,
                 clinic_operation_time TEXT NOT NULL,
                 clinic_coordinates TEXT NOT NULL,
