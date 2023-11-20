@@ -176,13 +176,16 @@ class UploadPage(tk.Frame):
             tkinter.messagebox.showinfo("Data saved", "Data saved successfully!")
             self.clearTextInput()
 
+            # Refresh the treeview in the ManagePage
             self.controller.frames[ManagePage].update_treeview()
 
-    # Method to clear out what was submitted so the data can't be entered twice in error.
+            
+
+            # Method to clear out what was submitted so the data can't be entered twice in error.
     def clearTextInput(self):
         self.title_entry.delete('0', END)
         self.content_entry.delete('1.0', END)
-        self.link_entry.delete('0', END)    
+        self.link_entry.delete('0', END)
 
     def refreshtree(self):
         self.upload_frame.destroy() #closes window
@@ -381,12 +384,24 @@ class ManagePage(tk.Frame):
         try:
             self.conn = sqlite3.connect("CAD_Database.db")
             self.c = self.conn.cursor()
+
+
+            # Check if the "TIPS" table exists, and if not, create it
+            self.c.execute("""
+                CREATE TABLE IF NOT EXISTS TIPS (
+                    Post_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    TITLE VARCHAR(100) NOT NULL,
+                    CONTENT VARCHAR(1000) NOT NULL,
+                    LINK VARCHAR(100) NOT NULL
+                )
+            """)
+
             post_id = tree_tips.item(selected_item, 'values')[0]
-            
+
             # Check if the record still exists in the database before deleting
             self.c.execute("SELECT * FROM TIPS WHERE Post_ID=?", (post_id,))
             record = self.c.fetchone()
-            
+
             if record:
                 self.c.execute("DELETE FROM TIPS WHERE Post_ID=?", (post_id,))
                 self.conn.commit()
@@ -398,6 +413,7 @@ class ManagePage(tk.Frame):
                 tkinter.messagebox.showinfo("Error", "Record not found in the database.")
         except Exception as e:
             print(f"Error while deleting record: {str(e)}")
+
 
        
 class ClinicRequestPage(tk.Frame):
@@ -432,7 +448,7 @@ class ClinicRequestPage(tk.Frame):
         request_canvas.configure(yscrollcommand=scrollbar.set)
         request_canvas.bind('<Configure>', lambda e: request_canvas.configure(scrollregion=request_canvas.bbox("all")))
 
-        frame_inner = Frame(request_canvas, background="lightgrey",height=550, width=900)
+        frame_inner = Frame(request_canvas, background="lightgrey")
         request_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
 
         self.load_request(frame_inner)
@@ -446,26 +462,26 @@ class ClinicRequestPage(tk.Frame):
 
         i = 0
         for _ in displayrecord:
-            request_frame = Frame(frame_inner, background="white", highlightbackground="black", highlightthickness=1)
-            request_frame.place(height=200, width=800, x=50, y=10 + i * 210)
+            request_frame = Frame(frame_inner, background="white", highlightbackground="black", highlightthickness=1, width=900,height=100)
+            request_frame.grid(row=i, column=1, padx=1, pady=1)
             request_name = Label(request_frame, text=displayrecord[i][1], font=("Helvetica", 16))
-            request_name.pack(pady=10)
+            request_name.place(x=10, y=20)
             request_location = Label(request_frame, text="Location : " + displayrecord[i][4], font=("Helvetica", 12))
-            request_location.pack(pady=5)
+            request_location.place(x=10, y=50)
             
-            request_button = Button(request_frame, text="More Information", command=lambda i=i: self.accept_request(user_id=displayrecord[i][0]))
-            request_button.pack(pady=5)
+            request_button = Button(request_frame, text="More Information", command=lambda i=i: self.accept_request(clinic_id=displayrecord[i][0]))
+            request_button.place(height=30, width=150, x=700, y=35)
 
             i += 1
 
         self.conn.close()
 
-    def accept_request(self, user_id):
+    def accept_request(self, clinic_id):
         # Fetch the information for the selected user_id
         db_path = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
         self.conn = sqlite3.connect(db_path)
         self.c = self.conn.cursor()
-        self.c.execute("SELECT * FROM ClinicInformation WHERE user_id=?", (user_id,))
+        self.c.execute("SELECT * FROM ClinicInformation WHERE clinic_id=?", (clinic_id,))
         selected_record = self.c.fetchone()
         self.conn.close()
 
@@ -502,9 +518,9 @@ class ClinicRequestPage(tk.Frame):
         fourth_label.place(height=30, width=235, x=20, y=170)
 
         
-        accept_button = tk.Button(more_info_frame, text="Approve", command=lambda: self.destroy_and_accept(more_info_frame, user_id), background="green", fg="white",font=(20))
+        accept_button = tk.Button(more_info_frame, text="Approve", command=lambda: self.destroy_and_accept(more_info_frame, clinic_id), background="green", fg="white",font=(20))
         accept_button.place(height=50, width=350, x=610, y=380)
-        decline_button = tk.Button(more_info_frame, text="Decline", background="red", fg="white",font=(20))
+        decline_button = tk.Button(more_info_frame, text="Decline", background="red", fg="white",font=(20),command=lambda: self.destroy_and_decline(more_info_frame, clinic_id))
         decline_button.place(height=50, width=350, x=610, y=450)
         
         # Display information in the new frame
@@ -536,18 +552,56 @@ class ClinicRequestPage(tk.Frame):
 
         
 
-    def destroy_and_accept(self, frame, user_id):
+    def destroy_and_accept(self, frame, clinic_id):
         # Update the status of the request in the database
         db_path = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
         self.conn = sqlite3.connect(db_path)
         self.c = self.conn.cursor()
-        self.c.execute("UPDATE ClinicInformation SET status=1 WHERE user_id=?", (user_id,))
+        self.c.execute("UPDATE ClinicInformation SET status=1 WHERE clinic_id=?", (clinic_id,))
         self.conn.commit()
         self.conn.close()
 
         # Update the treeview in ViewAllClinicPage
-        self.controller.frames[ViewAllClinicPage].update_treeview()
+        self.controller.frames[ClinicRequestPage].load_request(self.controller.frames[ClinicRequestPage].frame_inner)
 
+        # Refresh the canvas view
+        self.controller.show_frame(ViewAllClinicPage)
+
+        # Destroy the new frame
+        frame.destroy()
+
+
+    def destroy_and_decline(self, frame, clinic_id):
+
+        decline_frame = tk.Frame(self.request_frame, background="white")
+        decline_frame.place(height=640, width=1000, x=0, y=60)
+        
+        decline_label = tk.Label(decline_frame, text="Reason for Decline", font=("Helvetica", 25),background="white")
+        decline_label.place(height=30, width=300, x=350, y=30)
+        decline_entry = tk.Text(decline_frame)
+        decline_entry.place(height=200,width=500, x=250, y=100)
+
+        submit_button = tk.Button(decline_frame, text="Submit", command=lambda: self.destroy_and_submit(decline_frame, clinic_id, decline_entry.get("1.0", "end-1c")), background="green", fg="white",font=(20))
+        submit_button.place(height=50, width=350, x=610, y=380)
+
+        # Destroy the new frame
+        frame.destroy()
+    
+    def destroy_and_submit(self, frame, clinic_id, reason):
+        # Update the status of the request in the database
+        db_path = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
+        self.conn = sqlite3.connect(db_path)
+        self.c = self.conn.cursor()
+
+        self.c.execute("ALTER TABLE ClinicInformation ADD COLUMN reason VARCHAR(1000)")
+        self.c.execute("UPDATE ClinicInformation SET status=2, reason=? WHERE clinic_id=?", (reason, clinic_id,))
+
+        self.conn.commit()
+        self.conn.close()
+
+        # Update the treeview in ViewAllClinicPage
+        self.controller.frames[ClinicRequestPage].load_request(self.controller.frames[ClinicRequestPage].frame_inner)
+        
         # Destroy the new frame
         frame.destroy()
 
@@ -576,8 +630,90 @@ class ViewAllClinicPage(tk.Frame):
         self.frame2 = Frame(self.clinicView_frame , background = "light grey" )
         self.frame2.place(height=550, width=900, x=55, y=100)
 
+        viewClinic_canvas = Canvas(self.frame2, background="white")
+        viewClinic_canvas.place(height=550, width=900, x=0, y=0)
+
+        scrollbar = Scrollbar(self.frame2, orient=VERTICAL, command=viewClinic_canvas.yview)
+        scrollbar.pack(side=RIGHT, fill=Y)
+
+        viewClinic_canvas.configure(yscrollcommand=scrollbar.set)
+        viewClinic_canvas.bind('<Configure>', lambda _: viewClinic_canvas.configure(scrollregion=viewClinic_canvas.bbox("all")))
+
+        frame_inner = Frame(viewClinic_canvas)
+        viewClinic_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
+
+        self.load_clinic(frame_inner)
+
+
+
+    def load_clinic(self, frame_inner):
+        db_path = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
+        self.conn = sqlite3.connect(db_path)  # Connect to the existing database
+        self.c = self.conn.cursor()
+        self.c.execute("SELECT * FROM ClinicInformation WHERE status=1")
+        displayrecord = self.c.fetchall()
+
+        i = 0
+        for _ in displayrecord:
+            clinic_frame = Frame(frame_inner, background="white", highlightbackground="black", highlightthickness=1, width=900,height=100)
+            clinic_frame.grid(row=i, column=1, padx=1, pady=1)
+            clinic_name = Label(clinic_frame, text=displayrecord[i][1], font=("Helvetica", 16))
+            clinic_name.place(x=10, y=20)
+            clinic_location = Label(clinic_frame, text="Location : " + displayrecord[i][4], font=("Helvetica", 12))
+            clinic_location.place(x=10, y=50)
+            clinic_button = Button(clinic_frame, text="More Information", command=lambda i=i: self.more_information(clinic_id=displayrecord[i][0]))
+            clinic_button.place(height=30, width=150, x=700, y=35)
+            i += 1
+
+        self.conn.close()
+
+    def more_information(self, clinic_id):
+
+        db_path = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
+        self.conn = sqlite3.connect(db_path)
+        self.c = self.conn.cursor()
+        self.c.execute("SELECT * FROM ClinicInformation WHERE clinic_id=?", (clinic_id,))
+        selected_record = self.c.fetchone()
+        self.conn.close()
+
+        more_info_frame = tk.Frame(self.clinicView_frame, background="white")
+        more_info_frame.place(height=640, width=1000, x=0, y=60)
+
+        left_panel1 = Frame(more_info_frame, background="white", highlightbackground="black", highlightthickness=1)
+        left_panel1.place(height=500, width=550, x=30, y=100)
+
+        back_button = tk.Button(more_info_frame, text="Back ", command=lambda: more_info_frame.destroy())
+        back_button.place(height=30, width=130, x=30, y=30)
+
+        clinic_name = tk.Label(more_info_frame, text=selected_record[1], font=("Helvetica", 25),background="white")
+        clinic_name.place(height=30, width=300, x=350, y=30)
+
+        clinic_info = tk.Label(left_panel1, text="Clinic Information", font=("Helvetica", 20),background="white")
+        clinic_info.pack(pady=20)
+        clinic_operationTime = tk.Label(left_panel1, text="Operation Time: " + selected_record[2], font=("Helvetica", 12),background="white")
+        clinic_operationTime.pack(pady=1,anchor="w")
+        clinic_phoneNumber = tk.Label(left_panel1, text="Phone Number: " + selected_record[5], font=("Helvetica", 12),background="white")
+        clinic_phoneNumber.pack(pady=1,anchor="w")
+        clinic_location = tk.Label(left_panel1, text="Location: " + selected_record[4], font=("Helvetica", 12),background="white")
+        clinic_location.pack(pady=1,anchor="w")
+        clinic_codinates = tk.Label(left_panel1, text="Coordinate: " + selected_record[3], font=("Helvetica", 12),background="white")
+        clinic_codinates.pack(pady=1,anchor="w")
+        clinic_registration = tk.Label(left_panel1, text="Registration Number: " + selected_record[6], font=("Helvetica", 12),background="white")
+        clinic_registration.pack(pady=1,anchor="w")
+        clinic_description = tk.Label(left_panel1, text="Description: " + selected_record[7], font=("Helvetica", 12),background="white")
+        clinic_description.pack(pady=1,anchor="w")
+        founder_info = tk.Label(left_panel1, text="Founder Information", font=("Helvetica", 20),background="white")
+        founder_info.pack(pady=20)
+        founder_name = tk.Label(left_panel1, text="Founder Name: " + selected_record[8], font=("Helvetica", 12),background="white")
+        founder_name.pack(pady=1,anchor="w")
+        founder_email = tk.Label(left_panel1, text="Email: " + selected_record[10], font=("Helvetica", 12),background="white")
+        founder_email.pack(pady=1,anchor="w")
+        founder_phone = tk.Label(left_panel1, text="Contact: " + selected_record[9], font=("Helvetica", 12),background="white")
+        founder_phone.pack(pady=1,anchor="w")
+
 
 class ViewTipsPage(tk.Frame):
+
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
@@ -592,13 +728,17 @@ class ViewTipsPage(tk.Frame):
         TipsView_label  = Label(self.top_frame1 ,  text="Additional Tips", font=("Helvetica", 24),background = "light grey")
         TipsView_label .pack()
 
-        back_btn = Button(self, text = "Back",background="white",command=lambda: controller.show_frame(HomePage))
-        back_btn.place(height=30, width=100,x=800, y=10)
+        back_btn = Button(self, text="Back", background="white", command=lambda: controller.show_frame(HomePage))
+        back_btn.place(height=30, width=100, x=800, y=10)
+
+        refresh_btn = Button(self, text="Refresh", background="white", command=self.refresh_tips)
+        refresh_btn.place(height=30, width=100, x=900, y=10)
 
 
         self.frame2 = Frame(self.tipsView_frame, background="light grey")
         self.frame2.place(height=550, width=900, x=55, y=100)
 
+        '''
         tips_canvas = Canvas(self.frame2, background="white")
         tips_canvas.place(height=550, width=900, x=0, y=0)
 
@@ -606,51 +746,78 @@ class ViewTipsPage(tk.Frame):
         scrollbar.pack(side=RIGHT, fill=Y)
 
         tips_canvas.configure(yscrollcommand=scrollbar.set)
-        tips_canvas.bind('<Configure>', lambda e: tips_canvas.configure(scrollregion=tips_canvas.bbox("all")))
+        tips_canvas.bind('<Configure>', lambda _: tips_canvas.configure(scrollregion=tips_canvas.bbox("all")))
 
-        frame_inner = Frame(tips_canvas, background="lightgrey",height=550, width=900)
-        tips_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
+        frame_inner = Frame(tips_canvas)
+        tips_canvas.create_window((0, 0), window=frame_inner, anchor="nw")'''
+
+        self.tips_canvas = Canvas(self.frame2, background="white")
+        self.tips_canvas.place(height=550, width=900, x=0, y=0)
+
+        scrollbar = Scrollbar(self.frame2, orient=VERTICAL, command=self.tips_canvas.yview)
+        scrollbar.pack(side=RIGHT, fill=Y)
+
+        self.tips_canvas.configure(yscrollcommand=scrollbar.set)
+        self.tips_canvas.bind('<Configure>', lambda _: self.tips_canvas.configure(scrollregion=self.tips_canvas.bbox("all")))
+
+        frame_inner = Frame(self.tips_canvas)
+        self.tips_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
 
         self.load_tips(frame_inner)
 
-            
+
+                
     def load_tips(self, frame_inner):
-                db_path = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
+            db_path = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
+            self.conn = sqlite3.connect(db_path)  # Connect to the existing database
+            self.c = self.conn.cursor()
+            self.c.execute("SELECT * FROM TIPS")
+            displayrecord = self.c.fetchall()
 
-                self.conn = sqlite3.connect(db_path)  # Connect to the existing database
-                self.c = self.conn.cursor()
-                self.c.execute("SELECT * FROM TIPS")
-                displayrecord = self.c.fetchall()
+            
+            def callback(url):
+                webbrowser.open_new(url)
 
-                i = 0
-                for TIPS in displayrecord:
-                    tips_frame = Frame(frame_inner, background="white", highlightbackground="black", highlightthickness=1)
-                    tips_frame.place(height=200, width=800, x=50, y=10 + i * 210)
-                    tips_label = Label(tips_frame, text=TIPS[1], font=("Helvetica", 16))
-                    tips_label.pack(pady=10)
-                    tips_description = Label(tips_frame, text=TIPS[2], font=("Helvetica", 12))
-                    tips_description.pack(pady=5)
-                    tips_link = Label(tips_frame, text=TIPS[3], font=("Helvetica", 10))
-                    tips_link.pack(pady=5)
-                    i += 1
+            i = 0
+            for TIPS in displayrecord:
+                tips_frame = Frame(frame_inner, background="white", highlightbackground="black", highlightthickness=1, width=800,height=200)
+                #tips_frame.place(height=200, width=800, x=50, y=10 + i * 210)
+                
+                tips_frame.grid(row=i, column=1, padx=1, pady=1)
+                tips_label = Label(tips_frame, border=0, text=TIPS[1], font=("Helvetica", 16))
+                tips_label.place(x=10, y=10)
+                tips_description = Label(tips_frame,border=0, text=TIPS[2], font=("Helvetica", 12))
+                tips_description.place(x=10, y=40)
+                tips_link = Label(tips_frame, border=0, text=TIPS[3], font=("Helvetica", 10),fg="blue")
+                tips_link.place(x=10, y=100)
+                tips_link.bind("<Button-1>", lambda e:callback(TIPS[3]))
+                tips_link.config(cursor="hand2")
+                i += 1
 
-                self.conn.close()
-    
+            self.conn.close() 
 
-        
+    def refresh_tips(self):
+        # Clear the existing data
+        for widget in self.frame2.winfo_children():
+            widget.destroy()
+
+        # Fetch and display the latest data
+        self.load_tips(self.frame2)
+
+        # Reset the scrollregion of the Canvas
+        self.frame2.update_idletasks()  # Ensure all widgets are updated
+        self.tips_canvas.config(scrollregion=self.tips_canvas.bbox("all"))
 
 
-
-
-       
 
 if __name__ == "__main__":
-            app = Application()
-            app.geometry('1000x700')
-            app.resizable(True, True)
-            app.title('Call A Doctor')
+        app = Application()
+        app.geometry('1000x700')
+        app.resizable(True, True)
+        app.title('Call A Doctor')
 
-            app.mainloop()
+        app.mainloop()
+
 
 
 
