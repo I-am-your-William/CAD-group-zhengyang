@@ -350,7 +350,8 @@ class ManagePage(tk.Frame):
             tree_tips.item(select, values=(tree_tips.item(select)['values'][0], self.title_entry.get(), self.content_entry_submit, self.link_entry.get()))
             
             # Update the database
-            self.conn = sqlite3.connect("CAD_Database.db")
+            dbpath = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
+            self.conn = sqlite3.connect(dbpath)
             self.c = self.conn.cursor()
             self.c.execute("UPDATE TIPS SET TITLE=?, CONTENT=?, LINK=? WHERE Post_ID=?", (self.title_entry.get(), self.content_entry_submit, self.link_entry.get(), tree_tips.item(select)['values'][0]))
             self.conn.commit()
@@ -358,21 +359,13 @@ class ManagePage(tk.Frame):
             tkinter.messagebox.showinfo("Success", "Record Updated Successfully!")
             self.clearTextInput()
 
+ 
+    
+
     def clearTextInput(self):
         self.title_entry.delete('0', END)
         self.content_entry.delete('1.0', END)
         self.link_entry.delete('0', END)    
-
-
-    def select_item(self, a):
-        tree_item = tree_tips.focus()
-        values = tree_tips.item(tree_item, 'values')
-        self.title_entry.delete(0, END)
-        self.title_entry.insert(0, values[1])
-        self.content_entry.delete('1.0', END)
-        self.content_entry.insert('1.0', values[2])
-        self.link_entry.delete(0, END)
-        self.link_entry.insert(0, values[3])
 
     def delete(self):
         selected_item = tree_tips.selection()
@@ -385,24 +378,38 @@ class ManagePage(tk.Frame):
             self.conn = sqlite3.connect("CAD_Database.db")
             self.c = self.conn.cursor()
 
+            # Get the Post_ID of the selected item
+            post_id = tree_tips.item(selected_item)['values'][0]
 
-            post_id = tree_tips.item(selected_item, 'values')[0]
+            # Delete the record from the database
+            db_path = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
+            self.conn = sqlite3.connect(db_path)
+            self.c = self.conn.cursor()
+            self.c.execute("DELETE FROM TIPS WHERE Post_ID=?", (post_id,))
+            self.conn.commit()
+            self.conn.close()
 
-            # Check if the record still exists in the database before deleting
-            self.c.execute("SELECT * FROM TIPS WHERE Post_ID=?", (post_id,))
-            record = self.c.fetchone()
+            # Delete the item from the Treeview
+            tree_tips.delete(selected_item)
 
-            if record:
-                self.c.execute("DELETE FROM TIPS WHERE Post_ID=?", (post_id,))
-                self.conn.commit()
-                self.conn.close()
-                tree_tips.delete(selected_item)
-                self.clearTextInput()
-                tkinter.messagebox.showinfo("Success", "Record Deleted Successfully!")
-            else:
-                tkinter.messagebox.showinfo("Error", "Record not found in the database.")
+            tkinter.messagebox.showinfo("Success", "Record Deleted Successfully!")
+            self.clearTextInput()
         except Exception as e:
-            print(f"Error while deleting record: {str(e)}")
+            tkinter.messagebox.showerror("Error", str(e))
+
+
+    def select_item(self, a):
+        tree_item = tree_tips.focus()
+        values = tree_tips.item(tree_item, 'values')
+        self.title_entry.delete(0, END)
+        self.title_entry.insert(0, values[1])
+        self.content_entry.delete('1.0', END)
+        self.content_entry.insert('1.0', values[2])
+        self.link_entry.delete(0, END)
+        self.link_entry.insert(0, values[3])
+
+        
+
 
 
        
@@ -662,7 +669,7 @@ class ViewAllClinicPage(tk.Frame):
         db_path = "C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_Database.db"
         self.conn = sqlite3.connect(db_path)  # Connect to the existing database
         self.c = self.conn.cursor()
-        self.c.execute("SELECT * FROM ClinicInformation WHERE status=1")
+        self.c.execute("SELECT * FROM ClinicInformation WHERE status=1 or status=2")
         displayrecord = self.c.fetchall()
 
         i = 0
@@ -673,8 +680,16 @@ class ViewAllClinicPage(tk.Frame):
             clinic_name.place(x=10, y=20)
             clinic_location = Label(clinic_frame, text="Location : " + displayrecord[i][4], font=("Helvetica", 12))
             clinic_location.place(x=10, y=50)
+            clinic_status = Label(clinic_frame, text="Status : ", font=("Helvetica", 12))
+            clinic_status.place(x=610, y=20)
+            if displayrecord[i][13] == 1:
+                status = Label(clinic_frame, text="Approved", font=("Helvetica", 12), fg="green")
+                status.place(x=700, y=20)
+            elif displayrecord[i][13] == 2:
+                status = Label(clinic_frame, text="Declined", font=("Helvetica", 12), fg="red")
+                status.place(x=700, y=20)
             clinic_button = Button(clinic_frame, text="More Information", command=lambda i=i: self.more_information(clinic_id=displayrecord[i][0]))
-            clinic_button.place(height=30, width=150, x=700, y=35)
+            clinic_button.place(height=30, width=150, x=700, y=55)
             i += 1
 
         self.conn.close()
@@ -738,6 +753,23 @@ class ViewAllClinicPage(tk.Frame):
         founder_phone = tk.Label(left_panel1, text="Contact: " + selected_record[9], font=("Helvetica", 12),background="white")
         founder_phone.pack(pady=1,anchor="w")
 
+        status_label = tk.Label(more_info_frame, text="Status: ", font=("Helvetica", 15),background="white")
+        status_label.place(height=30, width=100, x=610, y=100)
+        if selected_record[13] == 1:
+            status = tk.Label(more_info_frame, text="Approved", font=("Helvetica", 15),background="white", fg="green")
+            status.place(height=30, width=200, x=700, y=100)
+        elif selected_record[13] == 2:
+            status = tk.Label(more_info_frame, text="Declined", font=("Helvetica", 15),background="white", fg="red")
+            status.place(height=30, width=200, x=700, y=100)
+            reason_label = tk.Label(more_info_frame, text="Reason: ", font=("Helvetica", 15),background="white")
+            reason_label.place(height=30, width=100, x=610, y=150)
+            reason = tk.Label(more_info_frame, text=selected_record[14], font=("Helvetica", 15),background="white")
+            reason.place(height=40, width=300, x=610, y=200)
+
+    
+        
+
+
 
 class ViewTipsPage(tk.Frame):
 
@@ -756,10 +788,10 @@ class ViewTipsPage(tk.Frame):
         TipsView_label .pack()
 
         back_btn = Button(self, text="Back", background="white", command=lambda: controller.show_frame(HomePage))
-        back_btn.place(height=30, width=100, x=800, y=10)
+        back_btn.place(height=30, width=100, x=700, y=10)
 
         refresh_btn = Button(self, text="Refresh", background="white", command=self.refresh_tips)
-        refresh_btn.place(height=30, width=100, x=900, y=10)
+        refresh_btn.place(height=30, width=100, x=800, y=10)
 
         self.frame2 = Frame(self.tipsView_frame, background="light grey")
         self.frame2.place(height=550, width=900, x=55, y=100)
