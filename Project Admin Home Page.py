@@ -386,16 +386,6 @@ class ManagePage(tk.Frame):
             self.c = self.conn.cursor()
 
 
-            # Check if the "TIPS" table exists, and if not, create it
-            self.c.execute("""
-                CREATE TABLE IF NOT EXISTS TIPS (
-                    Post_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                    TITLE VARCHAR(100) NOT NULL,
-                    CONTENT VARCHAR(1000) NOT NULL,
-                    LINK VARCHAR(100) NOT NULL
-                )
-            """)
-
             post_id = tree_tips.item(selected_item, 'values')[0]
 
             # Check if the record still exists in the database before deleting
@@ -431,25 +421,28 @@ class ClinicRequestPage(tk.Frame):
         request_label  = Label(self.top_frame2 ,  text="Clinic Request Page", font=("Helvetica", 24),background = "light grey")
         request_label .pack()
 
-        back_btn = Button(self, text = "Back",background="white",command=lambda: controller.show_frame(HomePage))
-        back_btn.place(height=30, width=100,x=800, y=10)
-        
-        ############# 
+        back_btn = Button(self, text="Back", background="white", command=lambda: controller.show_frame(HomePage))
+        back_btn.place(height=30, width=100, x=800, y=10)
 
-        self.frame2 = Frame(self.request_frame , background = "light grey" )
+        refresh_btn = Button(self, text="Refresh", background="white", command=self.refresh_request)
+        refresh_btn.place(height=30, width=100, x=100, y=10)
+
+        #############
+
+        self.frame2 = Frame(self.request_frame, background="light grey")
         self.frame2.place(height=550, width=900, x=55, y=100)
 
-        request_canvas = Canvas(self.frame2, background="white")
-        request_canvas.place(height=550, width=900, x=0, y=0)
+        self.request_canvas = Canvas(self.frame2, background="white")
+        self.request_canvas.place(height=550, width=900, x=0, y=0)
 
-        scrollbar = Scrollbar(self.frame2, orient=VERTICAL, command=request_canvas.yview)
+        scrollbar = Scrollbar(self.frame2, orient=VERTICAL, command=self.request_canvas.yview)
         scrollbar.pack(side=RIGHT, fill=Y)
 
-        request_canvas.configure(yscrollcommand=scrollbar.set)
-        request_canvas.bind('<Configure>', lambda e: request_canvas.configure(scrollregion=request_canvas.bbox("all")))
+        self.request_canvas.configure(yscrollcommand=scrollbar.set)
+        self.request_canvas.bind('<Configure>', lambda e: self.request_canvas.configure(scrollregion=self.request_canvas.bbox("all")))
 
-        frame_inner = Frame(request_canvas, background="lightgrey")
-        request_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
+        frame_inner = Frame(self.request_canvas, background="lightgrey")
+        self.request_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
 
         self.load_request(frame_inner)
 
@@ -475,6 +468,21 @@ class ClinicRequestPage(tk.Frame):
             i += 1
 
         self.conn.close()
+    
+    def refresh_request(self):
+        for widget in self.request_canvas.winfo_children():
+            widget.destroy()
+
+        # Fetch and display the latest data
+        frame_inner = Frame(self.request_canvas)
+        self.request_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
+        self.load_request(frame_inner)
+
+        # Reset the scrollregion of the Canvas
+        self.request_canvas.update_idletasks()  # Ensure all widgets are updated
+        self.request_canvas.config(scrollregion=self.request_canvas.bbox("all"))
+
+
 
     def accept_request(self, clinic_id):
         # Fetch the information for the selected user_id
@@ -497,6 +505,7 @@ class ClinicRequestPage(tk.Frame):
 
         back_button = tk.Button(more_info_frame, text="Back to Clinic Request", command=lambda: more_info_frame.destroy())
         back_button.place(height=30, width=130, x=30, y=30)
+        
 
         # Define the callback function
         def callback(url):
@@ -561,14 +570,9 @@ class ClinicRequestPage(tk.Frame):
         self.conn.commit()
         self.conn.close()
 
-        # Update the treeview in ViewAllClinicPage
-        self.controller.frames[ClinicRequestPage].load_request(self.controller.frames[ClinicRequestPage].frame_inner)
-
-        # Refresh the canvas view
-        self.controller.show_frame(ViewAllClinicPage)
-
         # Destroy the new frame
         frame.destroy()
+        
 
 
     def destroy_and_decline(self, frame, clinic_id):
@@ -593,14 +597,18 @@ class ClinicRequestPage(tk.Frame):
         self.conn = sqlite3.connect(db_path)
         self.c = self.conn.cursor()
 
-        self.c.execute("ALTER TABLE ClinicInformation ADD COLUMN reason VARCHAR(1000)")
+        # Check if the 'reason' column exists in the table
+        self.c.execute("PRAGMA table_info(ClinicInformation)")
+        columns = [column[1] for column in self.c.fetchall()]
+        if 'reason' not in columns:
+            self.c.execute("ALTER TABLE ClinicInformation ADD COLUMN reason VARCHAR(1000)")
+
         self.c.execute("UPDATE ClinicInformation SET status=2, reason=? WHERE clinic_id=?", (reason, clinic_id,))
 
         self.conn.commit()
         self.conn.close()
 
-        # Update the treeview in ViewAllClinicPage
-        self.controller.frames[ClinicRequestPage].load_request(self.controller.frames[ClinicRequestPage].frame_inner)
+       
         
         # Destroy the new frame
         frame.destroy()
@@ -621,26 +629,30 @@ class ViewAllClinicPage(tk.Frame):
         self.top_frame1.place(height=60, width=1000, x=1, y=1)
 
         clinicView_label  = Label(self.top_frame1 ,  text="View Clinic Page", font=("Helvetica", 24),background = "light grey")
-        clinicView_label .pack()
+        clinicView_label.pack()
 
-        back_btn = Button(self, text = "Back",background="white",command=lambda: controller.show_frame(HomePage))
-        back_btn.place(height=30, width=100,x=800, y=10)
+        back_btn = Button(self, text="Back", background="white", command=lambda: controller.show_frame(HomePage))
+        back_btn.place(height=30, width=100, x=800, y=10)
 
         ####### Main frame #####
-        self.frame2 = Frame(self.clinicView_frame , background = "light grey" )
+        self.frame2 = Frame(self.clinicView_frame, background="light grey")
         self.frame2.place(height=550, width=900, x=55, y=100)
 
-        viewClinic_canvas = Canvas(self.frame2, background="white")
-        viewClinic_canvas.place(height=550, width=900, x=0, y=0)
+        self.viewClinic_canvas = Canvas(self.frame2, background="white")
+        self.viewClinic_canvas.place(height=550, width=900, x=0, y=0)
 
-        scrollbar = Scrollbar(self.frame2, orient=VERTICAL, command=viewClinic_canvas.yview)
+        scrollbar = Scrollbar(self.frame2, orient=VERTICAL, command=self.viewClinic_canvas.yview)
         scrollbar.pack(side=RIGHT, fill=Y)
 
-        viewClinic_canvas.configure(yscrollcommand=scrollbar.set)
-        viewClinic_canvas.bind('<Configure>', lambda _: viewClinic_canvas.configure(scrollregion=viewClinic_canvas.bbox("all")))
+        self.viewClinic_canvas.configure(yscrollcommand=scrollbar.set)
+        self.viewClinic_canvas.bind('<Configure>', lambda _: self.viewClinic_canvas.configure(scrollregion=self.viewClinic_canvas.bbox("all")))
 
-        frame_inner = Frame(viewClinic_canvas)
-        viewClinic_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
+        frame_inner = Frame(self.viewClinic_canvas)
+        self.viewClinic_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
+
+        refresh_button = Button(self.top_frame1, text="Refresh", command=self.refresh_clinic)
+        refresh_button.place(height=30, width=100, x=100, y=10)
+
 
         self.load_clinic(frame_inner)
 
@@ -666,6 +678,21 @@ class ViewAllClinicPage(tk.Frame):
             i += 1
 
         self.conn.close()
+
+    def refresh_clinic(self):
+        for widget in self.viewClinic_canvas.winfo_children():
+            widget.destroy()
+
+        # Fetch and display the latest data
+        frame_inner = Frame(self.viewClinic_canvas)
+        self.viewClinic_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
+        self.load_clinic(frame_inner)
+
+        # Reset the scrollregion of the Canvas
+        self.viewClinic_canvas.update_idletasks()  # Ensure all widgets are updated
+        self.viewClinic_canvas.config(scrollregion=self.viewClinic_canvas.bbox("all"))
+
+        
 
     def more_information(self, clinic_id):
 
@@ -734,22 +761,8 @@ class ViewTipsPage(tk.Frame):
         refresh_btn = Button(self, text="Refresh", background="white", command=self.refresh_tips)
         refresh_btn.place(height=30, width=100, x=900, y=10)
 
-
         self.frame2 = Frame(self.tipsView_frame, background="light grey")
         self.frame2.place(height=550, width=900, x=55, y=100)
-
-        '''
-        tips_canvas = Canvas(self.frame2, background="white")
-        tips_canvas.place(height=550, width=900, x=0, y=0)
-
-        scrollbar = Scrollbar(self.frame2, orient=VERTICAL, command=tips_canvas.yview)
-        scrollbar.pack(side=RIGHT, fill=Y)
-
-        tips_canvas.configure(yscrollcommand=scrollbar.set)
-        tips_canvas.bind('<Configure>', lambda _: tips_canvas.configure(scrollregion=tips_canvas.bbox("all")))
-
-        frame_inner = Frame(tips_canvas)
-        tips_canvas.create_window((0, 0), window=frame_inner, anchor="nw")'''
 
         self.tips_canvas = Canvas(self.frame2, background="white")
         self.tips_canvas.place(height=550, width=900, x=0, y=0)
@@ -764,7 +777,6 @@ class ViewTipsPage(tk.Frame):
         self.tips_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
 
         self.load_tips(frame_inner)
-
 
                 
     def load_tips(self, frame_inner):
@@ -797,15 +809,17 @@ class ViewTipsPage(tk.Frame):
             self.conn.close() 
 
     def refresh_tips(self):
-        # Clear the existing data
-        for widget in self.frame2.winfo_children():
+        # Clear the existing data in the canvas
+        for widget in self.tips_canvas.winfo_children():
             widget.destroy()
 
         # Fetch and display the latest data
-        self.load_tips(self.frame2)
+        frame_inner = Frame(self.tips_canvas)
+        self.tips_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
+        self.load_tips(frame_inner)
 
         # Reset the scrollregion of the Canvas
-        self.frame2.update_idletasks()  # Ensure all widgets are updated
+        self.tips_canvas.update_idletasks()  # Ensure all widgets are updated
         self.tips_canvas.config(scrollregion=self.tips_canvas.bbox("all"))
 
 
