@@ -12,6 +12,7 @@ LARGEFONT = ("Verdana", 35)
 class Application(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
+        self.clinic_id = None
 
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
@@ -33,22 +34,13 @@ class Application(tk.Tk):
 
         self.show_frame(LoginClinic)
 
-            # Update the show_frame method in the Application class
-    def show_frame(self, cont):
-            frame = self.frames[cont]
-            frame.tkraise() # Pass the clinic_username to the frame
+    def show_frame(self, frame_class):
+            frame = self.frames[frame_class]
+            frame.clinic_id = self.clinic_id
+            frame.tkraise()
 
-        # Add an update_clinic_username method to the ClinicHomepage class
-    def update_clinic_username(self, clinic_username):
-            # Update the clinic_username in the frame
-            self.clinic_username_label.config(text=clinic_username)
-
-    '''
-    def show_frame(self, cont):
-        frame = self.frames[cont]
-        frame.tkraise()'''
-
-
+    def clear_clinic_id(self):
+        self.clinic_id = None
 
 class LoginClinic(tk.Frame):
     def __init__(self, parent, controller):
@@ -87,9 +79,6 @@ class LoginClinic(tk.Frame):
         goRegister_btn = tk.Button(self.login_clinic, text="Don't have an account ?", font=('Helvetica', 13), borderwidth=0, background="white", command=lambda: controller.show_frame(RegisterClinic))
         goRegister_btn.place(height=30, width=250, x=380, y=610)
 
-
-
-
     def login(self):
         db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
         conn = sqlite3.connect(db_path)
@@ -103,6 +92,7 @@ class LoginClinic(tk.Frame):
             if rows:
                 status = rows[0][13] 
                 if status == 1:
+                    self.controller.clinic_id = rows[0][0]
                     messagebox.showinfo("Success", "Login Successful")
                     self.controller.show_frame(ClinicHomepage)
                 elif status == 2:
@@ -118,12 +108,6 @@ class LoginClinic(tk.Frame):
 
         conn.commit()
         conn.close()
-
-    def get_clinic_username(self):
-        return self.clnloginusername_entry.get()
-
-
-
 
 class RegisterClinic(tk.Frame):
     def __init__(self, parent, controller):
@@ -336,15 +320,10 @@ class ClinicDecline(tk.Frame):
         self.decline_label = Label(self.clinic_decline, text="Sorry, Your request is decline", font=(15), background="white")
         self.decline_label.place(height=70,width=480, x=200, y=160) 
 
-        clinicLogout_btn = tk.Button(self.clinic_decline, text="Logout", background="thistle", command=lambda: controller.show_frame(LoginClinic))
-        clinicLogout_btn.place(height=30, width=60, x=910, y=25)
-
 class ClinicHomepage(LoginClinic, tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-
-        clinic_username = controller.clinic_username
 
         self.clinic_homepage = tk.Frame(self, background="white")
         self.clinic_homepage.place(height=700, width=1000, x=0, y=0)
@@ -363,7 +342,7 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         heading_label = tk.Label(self.clinic_homepage, text="Clinic Home", font=("Helvetica", 25, "bold"), background="cornsilk")
         heading_label.place(x=130, y=20)
 
-        clinicLogout_btn = tk.Button(self.clinic_homepage, text="Logout", background="thistle", command=lambda: controller.show_frame(LoginClinic))
+        clinicLogout_btn = tk.Button(self.clinic_homepage, text="Logout", background="thistle", command=self.logout)
         clinicLogout_btn.place(height=30, width=60, x=910, y=25)
 
         self.clinicleft_frame = tk.Frame(self.clinic_homepage, background="cornsilk")
@@ -387,16 +366,9 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         self.clinic_name = tk.Label(self.clinic_homepage, text="", font=(20), background="white")
         self.clinic_name.place(x=440, y=250)
 
-    def get_clinic_username(self):
-        super().get_clinic_username()
-
-        dbpath = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
-        conn = sqlite3.connect(dbpath)
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT clinic_name FROM ClinicInformation WHERE clinic_username = ?", (self.clinic_username.get(),))
-        rows = cursor.fetchall()
-        self.clinic_name = rows[0][0]
+    def logout(self):
+        self.controller.clinic_id = None
+        self.controller.show_frame(LoginClinic)
 
 class DoctorList(tk.Frame):
     def __init__(self, parent, controller):
@@ -501,6 +473,7 @@ class UploadDoctor(tk.Frame):
         doctor_email = self.doctoremail_label_entry.get()
         doctor_username = self.doctorusername_label_entry.get()
         doctor_password = self.doctorpassword_label_entry.get()
+        clinic_id = self.controller.clinic_id
 
         dbpath = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
         conn = sqlite3.connect(dbpath)
@@ -516,6 +489,7 @@ class UploadDoctor(tk.Frame):
                              doctor_email TEXT NOT NULL,
                              doctor_username TEXT NOT NULL,
                              doctor_password TEXT NOT NULL,
+                             clinic_id INT NOT NULL,
                              status INT NOT NULL
                         )
                     ''')
@@ -524,10 +498,10 @@ class UploadDoctor(tk.Frame):
                         INSERT INTO DoctorInformation (doctor_name, doctor_qualification, 
                                                         doctor_registration_no, doctor_contact, 
                                                         doctor_email, doctor_username, doctor_password, 
-                                                        status)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)'''
+                                                        clinic_id, status)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
                        , (doctor_name, doctor_qualification, doctor_registration_no, 
-                          doctor_contact, doctor_email, doctor_username, doctor_password, 0))
+                          doctor_contact, doctor_email, doctor_username, doctor_password, clinic_id , 0))
         
         conn.commit()
         conn.close()
