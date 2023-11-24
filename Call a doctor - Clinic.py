@@ -35,6 +35,8 @@ class Application(tk.Tk):
         frame = self.frames[frame_class]
         frame.clinic_id = self.clinic_id 
         frame.tkraise()
+        if isinstance(frame, ManageDoctor):
+            frame.showdoctordetails()
 
 class LoginClinic(tk.Frame):
     def __init__(self, parent, controller):
@@ -503,6 +505,7 @@ class ManageDoctor(tk.Frame):
         self.controller = controller
         global doctor_details_tree
         self.doctor_details_tree = None
+        self.clinic_id = None
 
         self.manage_doctor = Frame(self, background="white")
         self.manage_doctor.place(height=700, width=1000, x=0, y=0)
@@ -602,11 +605,15 @@ class ManageDoctor(tk.Frame):
 
         self.showdoctordetails()
 
+        self.doctor_details_tree.bind('<ButtonRelease-1>', self.selectdoctor)
+
+
     def showdoctordetails(self):
+        clinic_id = self.clinic_id
         db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT doctor_id, doctor_name, doctor_qualification, doctor_registration_no FROM DoctorInformation WHERE clinic_id = ?", (self.controller.clinic_id,))
+        cursor.execute("SELECT doctor_id, doctor_name, doctor_qualification, doctor_registration_no FROM DoctorInformation WHERE clinic_id = ?", (clinic_id,))
         rows = cursor.fetchall()
         self.doctor_details_tree.delete(*self.doctor_details_tree.get_children())
         for row in rows:
@@ -616,6 +623,33 @@ class ManageDoctor(tk.Frame):
                 self.doctor_details_tree.insert("", tk.END, values=row, tags=('odd',))
         conn.commit()
         conn.close()
+
+    def selectdoctor(self, event):
+        item = self.doctor_details_tree.selection()[0]
+        doctor_id = self.doctor_details_tree.item(item, "values")[0]
+
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT doctor_name, doctor_qualification, doctor_registration_no, doctor_contact, doctor_email FROM DoctorInformation WHERE doctor_id = ?", (doctor_id,))
+        row = cursor.fetchone()
+
+        if row is not None:
+            self.doctorname_label_entry.delete(0, END)
+            self.doctorname_label_entry.insert(0, row[0])
+            self.doctorqualification_label_entry.delete(0, END)
+            self.doctorqualification_label_entry.insert(0, row[1])
+            self.doctorregno_label_entry.delete(0, END)
+            self.doctorregno_label_entry.insert(0, row[2])
+            self.doctorcontactno_label_entry.delete(0, END)
+            self.doctorcontactno_label_entry.insert(0, row[3])
+            self.doctoremail_label_entry.delete(0, END)
+            self.doctoremail_label_entry.insert(0, row[4])
+
+        conn.close()
+
+    
 
 if __name__ == "__main__":
     app = Application()
