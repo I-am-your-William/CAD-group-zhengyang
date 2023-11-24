@@ -20,10 +20,6 @@ class Application(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        clinic_username = StringVar()  # Define clinic_username variable
-
-        self.clinic_username = clinic_username
-
         self.frames = {}
 
         for F in (LoginClinic, RegisterClinic, RegisterFounder, ClinicAccount, ClinicPending
@@ -35,12 +31,10 @@ class Application(tk.Tk):
         self.show_frame(LoginClinic)
 
     def show_frame(self, frame_class):
-            frame = self.frames[frame_class]
-            frame.clinic_id = self.clinic_id
-            frame.tkraise()
-
-    def clear_clinic_id(self):
-        self.clinic_id = None
+        print(self.clinic_id)
+        frame = self.frames[frame_class]
+        frame.clinic_id = self.clinic_id 
+        frame.tkraise()
 
 class LoginClinic(tk.Frame):
     def __init__(self, parent, controller):
@@ -54,7 +48,7 @@ class LoginClinic(tk.Frame):
 
         image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
         label_width, label_height = 200, 160
-        image = image.resize((label_width, label_height), Image.LANCZOS)  
+        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  
         image = ImageTk.PhotoImage(image)
         label = tk.Label(self.login_clinic, image=image)
         label.image = image
@@ -264,7 +258,7 @@ class ClinicAccount(tk.Frame):
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ClinicInformation (
-                clinic_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                clinic_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 clinic_name TEXT NOT NULL,
                 clinic_operation_time TEXT NOT NULL,
                 clinic_coordinates TEXT NOT NULL,
@@ -311,9 +305,6 @@ class ClinicDecline(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-
-        clinic_username = controller.clinic_username
-
         self.clinic_decline = Frame(self, background="white")
         self.clinic_decline.place(height=700, width=1000, x=0, y=0)
 
@@ -333,7 +324,7 @@ class ClinicHomepage(LoginClinic, tk.Frame):
 
         image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
         label_width, label_height = 112, 92
-        image = image.resize((label_width, label_height), Image.LANCZOS)
+        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)
         image = ImageTk.PhotoImage(image)
         label = tk.Label(self.clinic_homepage, image=image)
         label.image = image
@@ -342,7 +333,7 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         heading_label = tk.Label(self.clinic_homepage, text="Clinic Home", font=("Helvetica", 25, "bold"), background="cornsilk")
         heading_label.place(x=130, y=20)
 
-        clinicLogout_btn = tk.Button(self.clinic_homepage, text="Logout", background="thistle", command=self.logout)
+        clinicLogout_btn = tk.Button(self.clinic_homepage, text="Logout", background="thistle", command=lambda: controller.show_frame(LoginClinic))
         clinicLogout_btn.place(height=30, width=60, x=910, y=25)
 
         self.clinicleft_frame = tk.Frame(self.clinic_homepage, background="cornsilk")
@@ -365,10 +356,6 @@ class ClinicHomepage(LoginClinic, tk.Frame):
 
         self.clinic_name = tk.Label(self.clinic_homepage, text="", font=(20), background="white")
         self.clinic_name.place(x=440, y=250)
-
-    def logout(self):
-        self.controller.clinic_id = None
-        self.controller.show_frame(LoginClinic)
 
 class DoctorList(tk.Frame):
     def __init__(self, parent, controller):
@@ -481,7 +468,7 @@ class UploadDoctor(tk.Frame):
 
         cursor.execute('''
                        CREATE TABLE IF NOT EXISTS DoctorInformation (
-                             doctor_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                             doctor_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                              doctor_name TEXT NOT NULL,
                              doctor_qualification TEXT NOT NULL,
                              doctor_registration_no INT NOT NULL,
@@ -489,7 +476,7 @@ class UploadDoctor(tk.Frame):
                              doctor_email TEXT NOT NULL,
                              doctor_username TEXT NOT NULL,
                              doctor_password TEXT NOT NULL,
-                             clinic_id INT NOT NULL,
+                             clinic_id INT FOREIGNKEY REFERENCES ClinicInformation(clinic_id),
                              status INT NOT NULL
                         )
                     ''')
@@ -506,12 +493,16 @@ class UploadDoctor(tk.Frame):
         conn.commit()
         conn.close()
 
+        messagebox.showinfo("Success", "Doctor uploaded successfully")
         self.controller.show_frame(ClinicHomepage)
-
+        self.controller.clinic_id = clinic_id
+        
 class ManageDoctor(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        global doctor_details_tree
+        self.doctor_details_tree = None
 
         self.manage_doctor = Frame(self, background="white")
         self.manage_doctor.place(height=700, width=1000, x=0, y=0)
@@ -532,6 +523,99 @@ class ManageDoctor(tk.Frame):
 
         clinicbackTOHome_btn = Button(self.manage_doctor, text = " Back to homepage",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
         clinicbackTOHome_btn.place(height=30, width=110, x=865, y=25)
+
+        dataframe = Frame(self.manage_doctor, bd=12, relief=RIDGE, background="cornsilk")
+        dataframe.place(height=560, width=930, x=30, y=110)
+
+        ####################################### Dataframe #########################################
+        dataframeheading = LabelFrame(dataframe, bd=7, padx=20, relief=RIDGE, font=("Helvetica", 12, "bold"), text="Doctor Information", background="cornsilk")
+        dataframeheading.place(height=245, width=885, x=10, y=7)
+
+        self.doctorname_label = Label(dataframeheading, text="Doctor Full Name: ", font=(12), background="cornsilk", pady=9)
+        self.doctorname_label.grid(row=0, column=0, sticky=W)
+        self.doctorname_label_entry = Entry(dataframeheading, font=(10), width=67)
+        self.doctorname_label_entry.grid(row=0, column=1, sticky=W)
+
+        self.doctorqualification_label = Label(dataframeheading, text="Qualification: ", font=(12), background="cornsilk", pady=9)
+        self.doctorqualification_label.grid(row=1, column=0, sticky=W)
+        self.doctorqualification_label_entry = Entry(dataframeheading, font=(10), width=67)
+        self.doctorqualification_label_entry.grid(row=1, column=1, sticky=W)
+
+        self.doctorregno_label = Label(dataframeheading, text="Registration nummber:             ", font=(12), background="cornsilk", pady=9)
+        self.doctorregno_label.grid(row=2, column=0, sticky=W)
+        self.doctorregno_label_entry = Entry(dataframeheading, font=(10), width=67)
+        self.doctorregno_label_entry.grid(row=2, column=1, sticky=W)
+
+        self.doctorcontactno_label = Label(dataframeheading, text="Contact number: ", font=(12), background="cornsilk", pady=9)
+        self.doctorcontactno_label.grid(row=3, column=0, sticky=W)
+        self.doctorcontactno_label_entry = Entry(dataframeheading, font=(10), width=67)
+        self.doctorcontactno_label_entry.grid(row=3, column=1, sticky=W)
+        
+        self.doctoremail_label = Label(dataframeheading, text="Email Address: ", font=(12), background="cornsilk", pady=9)
+        self.doctoremail_label.grid(row=4, column=0, sticky=W)
+        self.doctoremail_label_entry = Entry(dataframeheading, font=(10), width=67)
+        self.doctoremail_label_entry.grid(row=4, column=1, sticky=W)
+        
+        ########################################## Buttonframe ######################################
+        buttonframe = Frame(dataframe, bd=7, relief=RIDGE, background="cornsilk")
+        buttonframe.place(height=40, width=885, x=10, y=269)
+
+        update_btn = Button(buttonframe, text="Update", background="thistle", width=47, font=("Helvetica", 11, "bold"))
+        update_btn.grid(column=0, row=0)
+
+        delete_btn = Button(buttonframe, text="Delete", background="thistle", width=48, font=("Helvetica", 11, "bold"))
+        delete_btn.grid(column=1, row=0)
+
+        ########################################## Detailsframe ######################################
+        delailsframe = Frame(dataframe, bd=7, relief=RIDGE, background="cornsilk")
+        delailsframe.place(height=198, width=885, x=10, y=325)
+
+        style = ttk.Style()
+        style.theme_use('default')
+        style.configure("Treeview", bg="#D3D3D3", fg="black", rowheight=15, fieldbackground="#F8F8F8")
+        style.map("Treeview", bg=[('selected', "#F9ECE4")])
+
+        doctordetailsframe = Frame(delailsframe)
+        doctordetailsframe.place(x=8,y=5)
+        treescroll = Scrollbar(doctordetailsframe)
+        treescroll.pack(side=RIGHT, fill=Y)
+
+        self.doctor_details_tree = ttk.Treeview(doctordetailsframe, yscrollcommand=treescroll.set, selectmode="extended")
+        self.doctor_details_tree.pack()
+        treescroll.config(command=self.doctor_details_tree.yview)
+
+        self.doctor_details_tree['column'] = ('1', '2', '3', '4')
+        self.doctor_details_tree['show'] = 'headings'
+
+        self.doctor_details_tree.column('1', width=40, anchor='c')
+        self.doctor_details_tree.column('2', width=265, anchor='c')
+        self.doctor_details_tree.column('3', width=330, anchor='c')
+        self.doctor_details_tree.column('4', width=205, anchor='c')
+
+        self.doctor_details_tree.heading('1', text='ID')
+        self.doctor_details_tree.heading('2', text='Full Name')
+        self.doctor_details_tree.heading('3', text='Qualification')
+        self.doctor_details_tree.heading('4', text='Registration Number')
+    
+        self.doctor_details_tree.tag_configure('odd', background="cornsilk")
+        self.doctor_details_tree.tag_configure('even', background="cornsilk") 
+
+        self.showdoctordetails()
+
+    def showdoctordetails(self):
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT doctor_id, doctor_name, doctor_qualification, doctor_registration_no FROM DoctorInformation WHERE clinic_id = ?", (self.controller.clinic_id,))
+        rows = cursor.fetchall()
+        self.doctor_details_tree.delete(*self.doctor_details_tree.get_children())
+        for row in rows:
+            if row[0] % 2 == 0:
+                self.doctor_details_tree.insert("", tk.END, values=row, tags=('even',))
+            else:
+                self.doctor_details_tree.insert("", tk.END, values=row, tags=('odd',))
+        conn.commit()
+        conn.close()
 
 if __name__ == "__main__":
     app = Application()
