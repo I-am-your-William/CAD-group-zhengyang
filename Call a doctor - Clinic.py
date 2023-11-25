@@ -22,8 +22,8 @@ class Application(tk.Tk):
 
         self.frames = {}
 
-        for F in (LoginClinic, RegisterClinic, RegisterFounder, ClinicAccount, ClinicPending
-                  , ClinicHomepage, UploadDoctor, ManageDoctor, DoctorList, ClinicDecline,):
+        for F in (LoginClinic, RegisterClinic, RegisterFounder, ClinicAccount, ClinicPending, ClinicHomepage, UploadDoctor
+                  , ManageDoctor, DoctorList, ClinicDecline, ClinicInfo, ):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -35,6 +35,10 @@ class Application(tk.Tk):
         frame = self.frames[frame_class]
         frame.clinic_id = self.clinic_id 
         frame.tkraise()
+        if isinstance(frame, ClinicInfo):
+            frame.showclinicdetails()
+        if isinstance(frame, DoctorList):
+            frame.showdoctordetails()
         if isinstance(frame, ManageDoctor):
             frame.showdoctordetails()
         if isinstance(frame, ClinicPending):
@@ -453,13 +457,16 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         self.clinicleft_frame.place(height=530, width=320, x=40, y=130)
 
         uploadDoctor_btn = tk.Button(self.clinic_homepage, text=" Upload Doctor ", font=(20), background="white", command=lambda: controller.show_frame(UploadDoctor))
-        uploadDoctor_btn.place(height=70, width=200, x=100, y=200)
+        uploadDoctor_btn.place(height=70, width=200, x=100, y=170)
 
         manageDoctor_btn = tk.Button(self.clinic_homepage, text=" Manage Doctor ", font=(20), background="white", command=lambda: controller.show_frame(ManageDoctor))
-        manageDoctor_btn.place(height=70, width=200, x=100, y=350)
+        manageDoctor_btn.place(height=70, width=200, x=100, y=290)
 
         viewDoctor_btn = tk.Button(self.clinic_homepage, text=" Doctor List ", font=(20), background="white", command=lambda: controller.show_frame(DoctorList))
-        viewDoctor_btn.place(height=70, width=200, x=100, y=500)
+        viewDoctor_btn.place(height=70, width=200, x=100, y=410)
+
+        viewClinic_btn = tk.Button(self.clinic_homepage, text=" About Us ", font=(20), background="white", command=lambda: controller.show_frame(ClinicInfo))
+        viewClinic_btn.place(height=70, width=200, x=100, y=530)
 
         self.clinicright_frame = tk.Frame(self.clinic_homepage, background="cornsilk")
         self.clinicright_frame.place(height=530, width=540, x=410, y=130)
@@ -477,14 +484,6 @@ class UploadDoctor(tk.Frame):
 
         self.clinictop_frame = Frame(self.upload_doctor , background="cornsilk")
         self.clinictop_frame.place(height=90, width=1000, x=0, y=0)
-
-        image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
-        label_width, label_height = 112, 92
-        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  
-        image = ImageTk.PhotoImage(image)
-        label = Label(self.upload_doctor, image=image)
-        label.image = image
-        label.place(height=label_height, width=label_width, x=0, y=0)
 
         heading_label = Label(self.upload_doctor, text="Uplaod Doctor", font=("Helvetica", 25, "bold"), background="cornsilk")
         heading_label.place(x=130, y=20)
@@ -582,7 +581,7 @@ class UploadDoctor(tk.Frame):
         self.controller.show_frame(ClinicHomepage)
         self.controller.clinic_id = clinic_id
         
-class ManageDoctor(tk.Frame):   qq
+class ManageDoctor(tk.Frame):   
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
@@ -595,14 +594,6 @@ class ManageDoctor(tk.Frame):   qq
 
         self.clinictop_frame = Frame(self.manage_doctor , background="cornsilk")
         self.clinictop_frame.place(height=90, width=1000, x=0, y=0)
-
-        image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
-        label_width, label_height = 112, 92
-        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  
-        image = ImageTk.PhotoImage(image)
-        label = Label(self.manage_doctor, image=image)
-        label.image = image
-        label.place(height=label_height, width=label_width, x=0, y=0)
 
         heading_label = Label(self.manage_doctor, text="Manage Doctor", font=("Helvetica", 25, "bold"), background="cornsilk")
         heading_label.place(x=130, y=20)
@@ -658,7 +649,7 @@ class ManageDoctor(tk.Frame):   qq
 
         style = ttk.Style()
         style.theme_use('default')
-        style.configure("Treeview", bg="#D3D3D3", fg="black", rowheight=15, fieldbackground="#F8F8F8")
+        style.configure("Treeview", bg="lavender", fg="black", rowheight=15, fieldbackground="cornsilk")
         style.map("Treeview", bg=[('selected', "#F9ECE4")])
 
         doctordetailsframe = Frame(delailsframe)
@@ -774,6 +765,7 @@ class DoctorList(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        self.clinic_id = None
 
         self.doctor_list = Frame(self, background="white")
         self.doctor_list.place(height=700, width=1000, x=0, y=0)
@@ -781,34 +773,106 @@ class DoctorList(tk.Frame):
         self.clinictop_frame = Frame(self.doctor_list , background="cornsilk")
         self.clinictop_frame.place(height=90, width=1000, x=0, y=0)
 
-        image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
-        label_width, label_height = 112, 92
-        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  
-        image = ImageTk.PhotoImage(image)
-        label = Label(self.doctor_list, image=image)
-        label.image = image
-        label.place(height=label_height, width=label_width, x=0, y=0)
-
         heading_label = Label(self.doctor_list, text="Doctor List", font=("Helvetica", 25, "bold"), background="cornsilk")
         heading_label.place(x=130, y=20)
 
         clinicbackTOHome_btn = Button(self.doctor_list, text = " Back to homepage",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
         clinicbackTOHome_btn.place(height=30, width=110, x=865, y=25)
 
-class PatientRequest(tk.Frame):
+        self.doctorlist_canvas = Canvas(self.doctor_list, background="cornsilk")
+        self.doctorlist_canvas.place(height=550, width=935, x=30, y=120)
+
+        self.doctorlist_scrollbar = Scrollbar(self.doctor_list, orient="vertical", command=self.doctorlist_canvas.yview)
+        self.doctorlist_scrollbar.place(height=550, width=20, x=965, y=120)
+
+        self.doctorlist_canvas.configure(yscrollcommand=self.doctorlist_scrollbar.set)
+        self.doctorlist_canvas.bind('<Configure>', lambda e: self.doctorlist_canvas.configure(scrollregion=self.doctorlist_canvas.bbox("all")))
+
+        self.doctorframe_inner = Frame(self.doctorlist_canvas, background="cornsilk")
+        self.doctorlist_canvas.create_window((0, 0), window=self.doctorframe_inner, anchor="nw")
+
+        self.showdoctordetails()
+
+    def showdoctordetails(self):
+        clinic_id = self.clinic_id
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT doctor_name, doctor_qualification, doctor_registration_no, doctor_contact, doctor_email FROM DoctorInformation WHERE clinic_id = ?", (clinic_id,))
+        display_doctor = cursor.fetchall()
+        i=0
+        for doctor in display_doctor:
+            doctor_frame = Frame(self.doctorframe_inner, background="cornsilk", highlightbackground="orange", highlightthickness=3, width=930, height=200)
+            doctor_frame.grid(row=i, column=1, padx=1, pady=1)
+            doctor_name = Label(doctor_frame, border=0, text=doctor[0], font=("Helvetica", 16, "bold"), background="cornsilk")
+            doctor_name.place(x=10, y=20)
+            doctor_qua = Label(doctor_frame, border=0, text=doctor[1], font=("Helvetica", 13), background="cornsilk")
+            doctor_qua.place(x=10, y=60)
+            doctor_regno = Label(doctor_frame, border=0, text=f"Registration No: {doctor[2]}", font=("Helvetica", 13), background="cornsilk")
+            doctor_regno.place(x=10, y=90)
+            doctor_contact = Label(doctor_frame, border=0, text=f"Contact: {doctor[3]}", font=("Helvetica", 13), background="cornsilk")
+            doctor_contact.place(x=10, y=120)
+            doctor_email = Label(doctor_frame, border=0, text=f"Email: {doctor[4]}", font=("Helvetica", 13), background="cornsilk")
+            doctor_email.place(x=10, y=150)
+            i+=1
+            self.doctorframe_inner.update_idletasks() 
+            self.doctorlist_canvas.configure(scrollregion=self.doctorlist_canvas.bbox("all"))
+        conn.commit()
+        conn.close()
+
+class ClinicInfo(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        global clinic_details_tree
+        self.clinic_details_tree = None
+        self.clinic_id = None
 
-        self.patient_request = Frame(self, background="white")
-        self.patient_request.place(height=700, width=1000, x=0, y=0)
+        self.clinic_info = Frame(self, background="white")
+        self.clinic_info.place(height=700, width=1000, x=0, y=0)
 
-        self.clinictop_frame = Frame(self.patient_request , background="cornsilk")
-        self.clinictop_frame.place(height=90, width=1000, x=0, y=0)
+        self.clinicinfotop_frame = Frame(self.clinic_info , background="cornsilk")
+        self.clinicinfotop_frame.place(height=90, width=1000, x=0, y=0)
 
-        self.backTOHome_btn = Button(self.patient_request, text = " Back to homepage",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
-        self.backTOHome_btn.place(height=30, width=110, x=865, y=25)
+        heading_label = Label(self.clinicinfotop_frame, text="About Us", font=("Helvetica", 25, "bold"), background="cornsilk")
+        heading_label.place(x=130, y=20)
 
+        clinicbackTOHome_btn = Button(self.clinicinfotop_frame, text = " Back to homepage",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
+        clinicbackTOHome_btn.place(height=30, width=110, x=865, y=25)
+
+        self.clinicinfomain_frame = Frame(self.clinic_info , background="cornsilk")
+        self.clinicinfomain_frame.place(height=530, width=915, x=40, y=130)
+
+        self.showclinicdetails()
+
+    def showclinicdetails(self):
+        clinic_id = self.clinic_id
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT clinic_name, clinic_operation_time, clinic_address, clinic_contact, clinic_description, founder_name, founder_contact, founder_email FROM ClinicInformation WHERE clinic_id = ?", (clinic_id,))
+        display_clinic = cursor.fetchall()
+
+        for clinic in display_clinic:
+            clinic_name = Label(self.clinicinfomain_frame, border=0, text=clinic[0], font=("Helvetica", 25, "bold"), background="cornsilk")
+            clinic_name.place(x=10, y=20)
+            clinic_op_time = Label(self.clinicinfomain_frame, border=0, text=f"Operation Time: {clinic[1]}", font=("Helvetica", 13), background="cornsilk")
+            clinic_op_time.place(x=10, y=90)
+            clinic_address = Label(self.clinicinfomain_frame, border=0, text=f"Address: {clinic[2]}", font=("Helvetica", 13), background="cornsilk")
+            clinic_address.place(x=10, y=120)
+            clinic_contact = Label(self.clinicinfomain_frame, border=0, text=f"Contact: {clinic[3]}", font=("Helvetica", 13), background="cornsilk")
+            clinic_contact.place(x=10, y=150)
+            clinic_description = Label(self.clinicinfomain_frame, border=0, text=f"Description: {clinic[4]}", font=("Helvetica", 13), background="cornsilk")
+            clinic_description.place(x=10, y=180)
+            clinic_founder = Label(self.clinicinfomain_frame, border=0, text=f"Founder: {clinic[5]}", font=("Helvetica", 13), background="cornsilk")
+            clinic_founder.place(x=10, y=210)
+            clinic_founder_contact = Label(self.clinicinfomain_frame, border=0, text=f"Founder Contact: {clinic[6]}", font=("Helvetica", 13), background="cornsilk")
+            clinic_founder_contact.place(x=10, y=240)
+            clinic_founder_email = Label(self.clinicinfomain_frame, border=0, text=f"Founder Email: {clinic[7]}", font=("Helvetica", 13), background="cornsilk")
+            clinic_founder_email.place(x=10, y=270)
+
+        conn.commit()
+        conn.close()
 
 if __name__ == "__main__":
     app = Application()
