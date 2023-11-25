@@ -92,7 +92,7 @@ class HomePage(tk.Frame):
         heading_label = Label(self.top_frame, text="Call A Doctor Admin Home Page", font=("Helvetica", 24), background="#D2E0FB")
         heading_label.pack()
 
-        log_out_btn = Button(self.top_frame, text="Log Out", background="#F9F3CC", command=self.log_out)
+        log_out_btn = Button(self.top_frame, text="Log Out", background="#F9F3CC", command=lambda: controller.show_frame(LoginAdmin))
         log_out_btn.place(height=30, width=100, x=800, y=10)
 
         image = Image.open("C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/CAD_logo.jpg")
@@ -104,7 +104,7 @@ class HomePage(tk.Frame):
 
         label = Label(self.top_frame, image=image)
         label.image = image  # Keep a reference to the image to prevent garbage collection
-        label.place(height=label_height, width=label_width, x=15, y=15)
+        label.place(height=label_height, width=label_width, x=30, y=10)
 
         #######left side panel########
         self.left_side_panel = Frame(home_page , background="#D2E0FB")
@@ -168,6 +168,7 @@ class HomePage(tk.Frame):
 
     def log_out(self):
          self.controller.destroy()
+         
 
 class UploadPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -299,17 +300,17 @@ class ManagePage(tk.Frame):
         self.title_label = Label(self.frame2, text = "Tilte : ", font=(20),background ="#D2E0FB")
         self.title_label.place(x=50, y=50)
         self.title_entry = Entry(self.frame2)
-        self.title_entry.place(height=30,width=200, x=150, y=50)
+        self.title_entry.place(height=30,width=500, x=150, y=50)
 
         self.content_label = Label(self.frame2, text = "Content Description : ", font=(20),background = "#D2E0FB")
         self.content_label.place(x=50, y=100)
         self.content_entry = Text(self.frame2)
-        self.content_entry.place(height=90,width=310, x=250, y=100)
+        self.content_entry.place(height=90,width=400, x=250, y=100)
 
         self.link_label = Label(self.frame2, text = "Link : ", font=(20),background ="#D2E0FB")
         self.link_label.place(x=50, y=200)
         self.link_entry = Entry(self.frame2)
-        self.link_entry.place(height=30,width=200, x=150, y=200)
+        self.link_entry.place(height=30,width=500, x=150, y=200)
 
         save_btn = Button(self.frame2, text = "Save",background="#F9F3CC", font=(20),command=self.save)
         save_btn.place(height=40, width=100,x=50, y=250)
@@ -613,7 +614,7 @@ class ClinicRequestPage(tk.Frame):
         
         # Display information in the new frame
         clinic_name = tk.Label(more_info_frame, text=selected_record[1], font=("Helvetica", 25),background="#F9F3CC")
-        clinic_name.place(height=30, width=300, x=350, y=30)
+        clinic_name.place(height=40, width=300, x=350, y=30)
         
 
         clinic_info = tk.Label(left_panel1, text="Clinic Information", font=("Helvetica", 20),background="white")
@@ -636,7 +637,7 @@ class ClinicRequestPage(tk.Frame):
         founder_name.pack(pady=1,anchor="w")
         founder_email = tk.Label(left_panel1, text="Email: " + selected_record[10], font=("Helvetica", 10),background="white")
         founder_email.pack(pady=1,anchor="w")
-        founder_phone = tk.Label(left_panel1, text="Contact: " + selected_record[9], font=("Helvetica", 10),background="white")
+        founder_phone = tk.Label(left_panel1, text="Contact: " + str(selected_record[9]), font=("Helvetica", 10),background="white")
         founder_phone.pack(pady=1,anchor="w")
 
 
@@ -793,11 +794,11 @@ class ViewAllClinicPage(tk.Frame):
         left_panel1 = Frame(more_info_frame, background="white", highlightbackground="black", highlightthickness=1)
         left_panel1.place(height=500, width=550, x=30, y=100)
 
-        back_button = tk.Button(more_info_frame, text="Back ", command=lambda: more_info_frame.destroy())
+        back_button = tk.Button(more_info_frame, text="Back to Clinic List", command=lambda: more_info_frame.destroy())
         back_button.place(height=30, width=130, x=30, y=30)
 
         clinic_name = tk.Label(more_info_frame, text=selected_record[1], font=("Helvetica", 25), background="#F9F3CC")
-        clinic_name.place(height=30, width=300, x=350, y=30)
+        clinic_name.place(height=40, width=300, x=350, y=30)
 
         clinic_info = tk.Label(left_panel1, text="Clinic Information", font=("Helvetica", 20), background="white")
         clinic_info.pack(pady=20)
@@ -850,7 +851,7 @@ class ViewTipsPage(tk.Frame):
         self.top_frame1 = Frame(self.tipsView_frame , background="#D2E0FB")
         self.top_frame1.place(height=60, width=1000, x=1, y=1)
 
-        TipsView_label  = Label(self.top_frame1 ,  text="Additional Tips", font=("Helvetica", 24),background = "#D2E0FB")
+        TipsView_label  = Label(self.top_frame1 ,  text="Health Tips For You", font=("Helvetica", 24),background = "#D2E0FB")
         TipsView_label .pack()
 
         back_btn = Button(self, text="Back", background="#F9F3CC", command=lambda: controller.show_frame(HomePage))
@@ -928,7 +929,5 @@ if __name__ == "__main__":
         app.title('Call A Doctor')
 
         app.mainloop()
-
-
 
 
