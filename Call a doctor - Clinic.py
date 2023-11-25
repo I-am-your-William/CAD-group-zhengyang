@@ -23,7 +23,7 @@ class Application(tk.Tk):
         self.frames = {}
 
         for F in (LoginClinic, RegisterClinic, RegisterFounder, ClinicAccount, ClinicPending
-                  , ClinicHomepage, DoctorList, UploadDoctor, ManageDoctor,ClinicDecline,):
+                  , ClinicHomepage, UploadDoctor, ManageDoctor, DoctorList, ClinicDecline,):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -37,6 +37,10 @@ class Application(tk.Tk):
         frame.tkraise()
         if isinstance(frame, ManageDoctor):
             frame.showdoctordetails()
+        if isinstance(frame, ClinicPending):
+            frame.display_status()
+        if isinstance(frame, ClinicDecline):
+            frame.display_status()
 
 class LoginClinic(tk.Frame):
     def __init__(self, parent, controller):
@@ -92,9 +96,11 @@ class LoginClinic(tk.Frame):
                     messagebox.showinfo("Success", "Login Successful")
                     self.controller.show_frame(ClinicHomepage)
                 elif status == 2:
+                    self.controller.clinic_id = rows[0][0]
                     messagebox.showerror("Info", "Login Declined")
                     self.controller.show_frame(ClinicDecline)
                 elif status == 0:
+                    self.controller.clinic_id = rows[0][0]
                     messagebox.showinfo("Info", "Login Pending")
                     self.controller.show_frame(ClinicPending)
                 else:
@@ -286,6 +292,9 @@ class ClinicAccount(tk.Frame):
         ''', (clinic_information[0], clinic_information[1], clinic_information[2], clinic_information[3],
             clinic_information[4], clinic_information[5], clinic_information[6], clinic_founder[0],
             clinic_founder[1], clinic_founder[2], clinic_username, clinic_password, 0))
+        
+        self.controller.clinic_id = cursor.lastrowid
+        messagebox.showinfo("Success", "Clinic registration successful")
 
         conn.commit()
         conn.close()
@@ -300,8 +309,56 @@ class ClinicPending(tk.Frame):
         self.clinic_pending = Frame(self, background="white")
         self.clinic_pending.place(height=700, width=1000, x=0, y=0)
 
-        self.patient_label = Label(self.clinic_pending, text="Please wait. Your account is being processed.", font=(15), background="white")
-        self.patient_label.place(height=70,width=480, x=200, y=160) 
+        
+        self.topframe = Frame(self.clinic_pending, background="cornsilk")
+        self.topframe.place(height=90, width=1000, x=0, y=0)
+
+        image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
+        label_width, label_height = 50, 50
+        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  # Use Image.Resampling.LANCZOS for resizing
+        # Create a PhotoImage from the resized image
+        image = ImageTk.PhotoImage(image)
+
+        label = Label(self.topframe, image=image)
+        label.image = image  # Keep a reference to the image to prevent garbage collection
+        label.place(height=label_height, width=label_width, x=25, y=25)
+
+        self.topframe_label = Label(self.topframe, text="Clinic Pending", font=("Helvetica", 25, "bold"), background="cornsilk")
+        self.topframe_label.place(x=130, y=20)
+
+        self.centerframe = Frame(self.clinic_pending, background="white", bd=12, relief=RIDGE)
+        self.centerframe.place(height=610, width=1000, x=0, y=90)
+
+        self.innercenterframe = Frame(self.centerframe, background="thistle")
+        self.innercenterframe.place(height=540, width=930, x=30, y=30)
+
+        self.clinicLogout_btn = Button(self.topframe, text="Logout", background="thistle", command=lambda: controller.show_frame(LoginClinic))
+        self.clinicLogout_btn.place(height=30, width=60, x=910, y=25)
+
+        self.pending_label = Label(self.innercenterframe, text="Please wait. Your account is being processed.", font=(15), background="cornsilk")
+        self.pending_label.place(height=70,width=480, x=200, y=300) 
+
+    def display_status(self):
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        clinic_id = self.clinic_id
+        cursor.execute("SELECT status, clinic_name FROM ClinicInformation WHERE clinic_id = ?", (clinic_id,))
+        rows = cursor.fetchall()
+
+        status = rows[0][0]
+        status = int(status)
+        if status == 0:
+            status = "Pending"
+        clinic_name = rows[0][1]
+        clinicname = tk.Label(self.innercenterframe, text="Dear " + str(clinic_name), font=(15), background="cornsilk")
+        clinicname.place(height=70,width=480, x=200, y=100)
+        
+        status = tk.Label(self.innercenterframe, text="Account Status: " + str(status), font=(15), background="cornsilk")
+        status.place(height=70,width=480, x=200, y=200)
+
+        conn.commit()
+        conn.close()
 
 class ClinicDecline(tk.Frame):
     def __init__(self, parent, controller):
@@ -310,8 +367,62 @@ class ClinicDecline(tk.Frame):
         self.clinic_decline = Frame(self, background="white")
         self.clinic_decline.place(height=700, width=1000, x=0, y=0)
 
-        self.decline_label = Label(self.clinic_decline, text="Sorry, Your request is decline", font=(15), background="white")
-        self.decline_label.place(height=70,width=480, x=200, y=160) 
+        self.topframe = Frame(self.clinic_decline, background="cornsilk")
+        self.topframe.place(height=90, width=1000, x=0, y=0)
+
+        self.topframe_label = Label(self.topframe, text="Clinic Decline", font=("Helvetica", 25, "bold"), background="cornsilk")
+        self.topframe_label.place(x=130, y=20)
+
+        image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
+        label_width, label_height = 50, 50
+        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  # Use Image.Resampling.LANCZOS for resizing
+        # Create a PhotoImage from the resized image
+        image = ImageTk.PhotoImage(image)
+
+        label = Label(self.topframe, image=image)
+        label.image = image  # Keep a reference to the image to prevent garbage collection
+        label.place(height=label_height, width=label_width, x=25, y=25)
+
+        self.topframe_label = Label(self.topframe, text="Clinic Pending", font=("Helvetica", 25, "bold"), background="cornsilk")
+        self.topframe_label.place(x=130, y=20)
+
+        self.centerframe = Frame(self.clinic_decline, background="white", bd=12, relief=RIDGE)
+        self.centerframe.place(height=610, width=1000, x=0, y=90)
+
+        self.innercenterframe = Frame(self.centerframe, background="thistle")
+        self.innercenterframe.place(height=540, width=930, x=30, y=30)
+
+        self.clinicLogout_btn = Button(self.topframe, text="Logout", background="thistle", command=lambda: controller.show_frame(LoginClinic))
+        self.clinicLogout_btn.place(height=30, width=60, x=910, y=25)
+
+        self.decline_label = Label(self.innercenterframe, text="Sorry, Your request has been decline", font=(15), background="thistle")
+        self.decline_label.place(height=70,width=480, x=200, y=280) 
+    
+    def display_status(self):
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        clinic_id = self.clinic_id
+        cursor.execute("SELECT status, clinic_name, reason FROM ClinicInformation WHERE clinic_id = ?", (clinic_id,))
+        rows = cursor.fetchall()
+
+        status = rows[0][0]
+        status = int(status)
+        if status == 2:
+            status = "Decline"
+        clinic_name = rows[0][1]
+        reason = rows[0][2]
+        clinicname = tk.Label(self.innercenterframe, text="Dear " + str(clinic_name), font=(15), background="cornsilk")
+        clinicname.place(height=70, width=480, x=200, y=50)
+        
+        status = tk.Label(self.innercenterframe, text=" Account Status: " + str(status), font=(15), background="cornsilk")
+        status.place(height=70, width=480, x=200, y=120)
+
+        self.decline_reason = Label(self.innercenterframe, text="Reason: " + str(reason), font=(15), background="cornsilk",anchor="center",wraplength=300)
+        self.decline_reason.place(height=100, width=480, x=200, y=190)
+
+        conn.commit()
+        conn.close()
 
 class ClinicHomepage(LoginClinic, tk.Frame):
     def __init__(self, parent, controller):
@@ -341,48 +452,20 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         self.clinicleft_frame = tk.Frame(self.clinic_homepage, background="cornsilk")
         self.clinicleft_frame.place(height=530, width=320, x=40, y=130)
 
-        viewDoctor_btn = tk.Button(self.clinic_homepage, text=" Doctor List ", font=(20), background="white", command=lambda: controller.show_frame(DoctorList))
-        viewDoctor_btn.place(height=70, width=200, x=100, y=200)
-
         uploadDoctor_btn = tk.Button(self.clinic_homepage, text=" Upload Doctor ", font=(20), background="white", command=lambda: controller.show_frame(UploadDoctor))
-        uploadDoctor_btn.place(height=70, width=200, x=100, y=350)
+        uploadDoctor_btn.place(height=70, width=200, x=100, y=200)
 
         manageDoctor_btn = tk.Button(self.clinic_homepage, text=" Manage Doctor ", font=(20), background="white", command=lambda: controller.show_frame(ManageDoctor))
-        manageDoctor_btn.place(height=70, width=200, x=100, y=500)
+        manageDoctor_btn.place(height=70, width=200, x=100, y=350)
+
+        viewDoctor_btn = tk.Button(self.clinic_homepage, text=" Doctor List ", font=(20), background="white", command=lambda: controller.show_frame(DoctorList))
+        viewDoctor_btn.place(height=70, width=200, x=100, y=500)
 
         self.clinicright_frame = tk.Frame(self.clinic_homepage, background="cornsilk")
         self.clinicright_frame.place(height=530, width=540, x=410, y=130)
 
         self.patient_label = tk.Label(self.clinic_homepage, text="Patient", font=(25), background="white")
         self.patient_label.place(height=70, width=480, x=440, y=160)
-
-        self.clinic_name = tk.Label(self.clinic_homepage, text="", font=(20), background="white")
-        self.clinic_name.place(x=440, y=250)
-
-class DoctorList(tk.Frame):
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-        self.controller = controller
-
-        self.doctor_list = Frame(self, background="white")
-        self.doctor_list.place(height=700, width=1000, x=0, y=0)
-
-        self.clinictop_frame = Frame(self.doctor_list , background="cornsilk")
-        self.clinictop_frame.place(height=90, width=1000, x=0, y=0)
-
-        image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
-        label_width, label_height = 112, 92
-        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  
-        image = ImageTk.PhotoImage(image)
-        label = Label(self.doctor_list, image=image)
-        label.image = image
-        label.place(height=label_height, width=label_width, x=0, y=0)
-
-        heading_label = Label(self.doctor_list, text="Doctor List", font=("Helvetica", 25, "bold"), background="cornsilk")
-        heading_label.place(x=130, y=20)
-
-        clinicbackTOHome_btn = Button(self.doctor_list, text = " Back to homepage",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
-        clinicbackTOHome_btn.place(height=30, width=110, x=865, y=25)
 
 class UploadDoctor(tk.Frame):
     def __init__(self, parent, controller):
@@ -499,7 +582,7 @@ class UploadDoctor(tk.Frame):
         self.controller.show_frame(ClinicHomepage)
         self.controller.clinic_id = clinic_id
         
-class ManageDoctor(tk.Frame):
+class ManageDoctor(tk.Frame):   qq
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
@@ -563,10 +646,10 @@ class ManageDoctor(tk.Frame):
         buttonframe = Frame(dataframe, bd=7, relief=RIDGE, background="cornsilk")
         buttonframe.place(height=40, width=885, x=10, y=269)
 
-        update_btn = Button(buttonframe, text="Update", background="thistle", width=47, font=("Helvetica", 11, "bold"))
+        update_btn = Button(buttonframe, text="Update", background="thistle", width=47, font=("Helvetica", 11, "bold"), command=self.update_doctor)
         update_btn.grid(column=0, row=0)
 
-        delete_btn = Button(buttonframe, text="Delete", background="thistle", width=48, font=("Helvetica", 11, "bold"))
+        delete_btn = Button(buttonframe, text="Delete", background="thistle", width=48, font=("Helvetica", 11, "bold"), command=self.delete_doctor)
         delete_btn.grid(column=1, row=0)
 
         ########################################## Detailsframe ######################################
@@ -604,9 +687,7 @@ class ManageDoctor(tk.Frame):
         self.doctor_details_tree.tag_configure('even', background="cornsilk") 
 
         self.showdoctordetails()
-
         self.doctor_details_tree.bind('<ButtonRelease-1>', self.selectdoctor)
-
 
     def showdoctordetails(self):
         clinic_id = self.clinic_id
@@ -627,14 +708,11 @@ class ManageDoctor(tk.Frame):
     def selectdoctor(self, event):
         item = self.doctor_details_tree.selection()[0]
         doctor_id = self.doctor_details_tree.item(item, "values")[0]
-
         db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-
         cursor.execute("SELECT doctor_name, doctor_qualification, doctor_registration_no, doctor_contact, doctor_email FROM DoctorInformation WHERE doctor_id = ?", (doctor_id,))
         row = cursor.fetchone()
-
         if row is not None:
             self.doctorname_label_entry.delete(0, END)
             self.doctorname_label_entry.insert(0, row[0])
@@ -646,10 +724,91 @@ class ManageDoctor(tk.Frame):
             self.doctorcontactno_label_entry.insert(0, row[3])
             self.doctoremail_label_entry.delete(0, END)
             self.doctoremail_label_entry.insert(0, row[4])
-
         conn.close()
 
-    
+    def update_doctor(self):
+        item = self.doctor_details_tree.selection()[0]
+        doctor_id = self.doctor_details_tree.item(item, "values")[0]
+        doctor_name = self.doctorname_label_entry.get()
+        doctor_qualification = self.doctorqualification_label_entry.get()
+        doctor_registration_no = self.doctorregno_label_entry.get()
+        doctor_contact = self.doctorcontactno_label_entry.get()
+        doctor_email = self.doctoremail_label_entry.get()
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE DoctorInformation SET doctor_name = ?, doctor_qualification = ?, doctor_registration_no = ?, doctor_contact = ?, doctor_email = ? WHERE doctor_id = ?", 
+                       (doctor_name, doctor_qualification, doctor_registration_no, doctor_contact, doctor_email, doctor_id))
+        conn.commit()
+        conn.close()
+        messagebox.showinfo("Success", "Doctor updated successfully")
+        self.showdoctordetails()
+        self.clearTextInput()
+        self.controller.frames[ManageDoctor].update_doctordetails_tree()
+
+    def delete_doctor(self):
+        item = self.doctor_details_tree.selection()[0]
+        doctor_id = self.doctor_details_tree.item(item, "values")[0]
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM DoctorInformation WHERE doctor_id = ?", (doctor_id,))
+        conn.commit()
+        conn.close()
+        messagebox.showinfo("Success", "Doctor deleted successfully")
+        self.showdoctordetails()
+        self.clearTextInput()
+
+    def update_doctordetails_tree(self):
+        self.doctor_details_tree.delete(*self.doctor_details_tree.get_children())
+        self.showdoctordetails()
+
+    def clearTextInput(self):
+        self.doctorname_label_entry.delete(0, END)
+        self.doctorqualification_label_entry.delete(0, END)
+        self.doctorregno_label_entry.delete(0, END)
+        self.doctorcontactno_label_entry.delete(0, END)
+        self.doctoremail_label_entry.delete(0, END)
+
+class DoctorList(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        self.doctor_list = Frame(self, background="white")
+        self.doctor_list.place(height=700, width=1000, x=0, y=0)
+
+        self.clinictop_frame = Frame(self.doctor_list , background="cornsilk")
+        self.clinictop_frame.place(height=90, width=1000, x=0, y=0)
+
+        image = Image.open("C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_logo.jpg")
+        label_width, label_height = 112, 92
+        image = image.resize((label_width, label_height), Image.Resampling.LANCZOS)  
+        image = ImageTk.PhotoImage(image)
+        label = Label(self.doctor_list, image=image)
+        label.image = image
+        label.place(height=label_height, width=label_width, x=0, y=0)
+
+        heading_label = Label(self.doctor_list, text="Doctor List", font=("Helvetica", 25, "bold"), background="cornsilk")
+        heading_label.place(x=130, y=20)
+
+        clinicbackTOHome_btn = Button(self.doctor_list, text = " Back to homepage",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
+        clinicbackTOHome_btn.place(height=30, width=110, x=865, y=25)
+
+class PatientRequest(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        self.patient_request = Frame(self, background="white")
+        self.patient_request.place(height=700, width=1000, x=0, y=0)
+
+        self.clinictop_frame = Frame(self.patient_request , background="cornsilk")
+        self.clinictop_frame.place(height=90, width=1000, x=0, y=0)
+
+        self.backTOHome_btn = Button(self.patient_request, text = " Back to homepage",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
+        self.backTOHome_btn.place(height=30, width=110, x=865, y=25)
+
 
 if __name__ == "__main__":
     app = Application()
