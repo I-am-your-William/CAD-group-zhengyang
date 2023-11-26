@@ -1,11 +1,8 @@
 import tkinter as tk
 import sqlite3
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, messagebox, simpledialog,  Button
 from PIL import ImageTk, Image
-from tkinter import StringVar, messagebox
-from tkinter import messagebox
-import sqlite3
 
 LARGEFONT = ("Verdana", 35)
 
@@ -23,7 +20,7 @@ class Application(tk.Tk):
         self.frames = {}
 
         for F in (LoginClinic, RegisterClinic, RegisterFounder, ClinicAccount, ClinicPending, ClinicHomepage, UploadDoctor
-                  , ManageDoctor, DoctorList, ClinicDecline, ClinicInfo, ):
+                  , ManageDoctor, DoctorList, ClinicDecline, ClinicInfo,):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -45,6 +42,8 @@ class Application(tk.Tk):
             frame.display_status()
         if isinstance(frame, ClinicDecline):
             frame.display_status()
+        if isinstance(frame, ClinicHomepage):
+            frame.showappointmentdetails()
 
 class LoginClinic(tk.Frame):
     def __init__(self, parent, controller):
@@ -432,6 +431,7 @@ class ClinicHomepage(LoginClinic, tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        self.clinic_id = None
 
         self.clinic_homepage = tk.Frame(self, background="white")
         self.clinic_homepage.place(height=700, width=1000, x=0, y=0)
@@ -473,6 +473,147 @@ class ClinicHomepage(LoginClinic, tk.Frame):
 
         self.patient_label = tk.Label(self.clinic_homepage, text="Patient", font=(25), background="white")
         self.patient_label.place(height=70, width=480, x=440, y=160)
+
+        self.appointmentlist_canvas = Canvas(self.clinic_homepage, background="white", bd=0, highlightthickness=0)
+        self.appointmentlist_canvas.place(height=350, width=480, x=440, y=260)
+
+        self.appointmentlist_scrollbar = Scrollbar(self.clinic_homepage, orient="vertical", command=self.appointmentlist_canvas.yview)
+        self.appointmentlist_scrollbar.place(height=350, width=20, x=920, y=260)
+
+        self.appointmentlist_canvas.configure(yscrollcommand=self.appointmentlist_scrollbar.set)
+
+        self.appointmentframe_inner = Frame(self.appointmentlist_canvas, background="white")
+        self.appointmentlist_canvas.create_window((0, 0), window=self.appointmentframe_inner, anchor="nw")
+
+        self.appointmentframe_inner.bind('<Configure>', lambda e: self.appointmentlist_canvas.configure(scrollregion=self.appointmentlist_canvas.bbox("all")))
+
+        self.showappointmentdetails()
+
+    def showappointmentdetails(self):
+        clinic_id = self.clinic_id
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT Appointment.symptoms, PatientInfo.PatientName, PatientInfo.patID, Appointment.appointment_id FROM Appointment 
+            JOIN PatientInfo ON Appointment.patID = PatientInfo.patID 
+            WHERE Appointment.clinic_id = ? AND appointment_status = 0""", (clinic_id,))
+        display_appointment = cursor.fetchall()
+        i=0
+        for appointment in display_appointment:
+            appointment_frame = Frame(self.appointmentframe_inner, background="white", highlightbackground="orange", highlightthickness=1, width=458, height=70)
+            appointment_frame.grid(row=i, column=0, padx=1, pady=1)
+            patient_name = Label(appointment_frame, text=appointment[1], font=(15), background="white")
+            patient_name.place(x=10, y=5)
+            symptoms = Label(appointment_frame, text=appointment[0], font=(15), background="white")
+            symptoms.place(x=10, y=30)
+            view_patient_button = Button(appointment_frame, text="View Patient", command=lambda appointment_id=appointment[3]: self.viewpatient(appointment_id), background="white", fg="blue", borderwidth=0)
+            view_patient_button.place(height=20, width=70, x=380, y=25)
+            i+=1
+        conn.close()
+
+    def viewpatient(self, appointment_id):
+        clinic_id = self.clinic_id
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT patID FROM Appointment WHERE appointment_id = ?", (appointment_id,))
+        fetch_result = cursor.fetchone()
+        if fetch_result is not None:
+            patID = fetch_result[0]
+        else:
+            patID = None
+        cursor.execute("SELECT PatientName, ContactNumber FROM PatientInfo WHERE patID = ?", (patID,))
+        display_patient = cursor.fetchall()
+        cursor.execute("SELECT symptoms, appointment_date, appointment_time FROM Appointment WHERE clinic_id = ? AND appointment_id = ?", (clinic_id, appointment_id))
+        display_appointment = cursor.fetchall()
+        conn.close()
+        # Rest of your code...
+        view_patient_frame = Frame(self.clinic_homepage, background="white")
+        view_patient_frame.place(height=700, width=1000, x=0, y=0)
+
+        view_patient_topframe = Frame(view_patient_frame, background="cornsilk")
+        view_patient_topframe.place(height=90, width=1000, x=0, y=0)
+
+        view_patient_topframe_label = Label(view_patient_topframe, text="Patient Information", font=("Helvetica", 25, "bold"), background="cornsilk")
+        view_patient_topframe_label.place(x=330, y=20)
+
+        clinicbackTOHome_btn = Button(view_patient_topframe, text = " Back to homepage",background="thistle",command=lambda: view_patient_frame.destroy())
+        clinicbackTOHome_btn.place(height=30, width=110, x=865, y=25)
+
+        viewpatientmain_frame = Frame(view_patient_frame , background="cornsilk")
+        viewpatientmain_frame.place(height=530, width=915, x=40, y=130)
+
+        for patient in display_patient:
+            patient_name = Label(viewpatientmain_frame, text="Patient Name: " + str(patient[0]), font=(15), background="cornsilk")
+            patient_name.place(x=100, y=30)
+            patient_contact = Label(viewpatientmain_frame, text="Patient Contact: " + str(patient[1]), font=(15), background="cornsilk")
+            patient_contact.place(x=100, y=80)
+        for appointment in display_appointment:
+            symptoms = Label(viewpatientmain_frame, text="Symptoms: " + str(appointment[0]), font=(15), background="cornsilk")
+            symptoms.place(x=100, y=130)
+            appointment_date = Label(viewpatientmain_frame, text="Appointment Date: " + str(appointment[1]), font=(15), background="cornsilk")
+            appointment_date.place(x=100, y=180)
+            appointment_time = Label(viewpatientmain_frame, text="Appointment Time: " + str(appointment[2]), font=(15), background="cornsilk")
+            appointment_time.place(x=100, y=230)
+
+            decline_button = Button(viewpatientmain_frame, text="Decline", command=lambda: self.decline_appointment(appointment_id=appointment_id),background="white", fg="blue", borderwidth=0)
+            decline_button.place(height=20, width=70, x=100, y=280)
+
+            choosedoctor_button = Button(viewpatientmain_frame, text="Choose Doctor", command=lambda: self.choose_doctor(appointment_id=appointment_id),background="white", fg="blue", borderwidth=0)
+            choosedoctor_button.place(height=20, width=170, x=200, y=280)
+
+    
+    def choose_doctor(self, appointment_id):
+        clinic_id = self.clinic_id
+        db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT doctor_id, doctor_name, doctor_qualification FROM DoctorInformation WHERE status IN (0, 1, 2) AND clinic_id = ?", (clinic_id,))
+        rows = cursor.fetchall()
+        doctors = {f"{row[1]} ({row[2]})": row[0] for row in rows}
+        doctor_combobox = ttk.Combobox(self, values=list(doctors.keys()), width=100)
+        doctor_combobox.place(x=100, y=100)
+
+        def accept_appointment():
+            selected_doctor = doctor_combobox.get()
+            if selected_doctor == "":
+                messagebox.showerror("Error", "Please choose a doctor.")
+            else:
+                doctor_id = doctors[selected_doctor]
+                cursor.execute("UPDATE appointment SET doctor_id = ?, appointment_status = 1 WHERE appointment_id = ?", (doctor_id, appointment_id))
+                cursor.execute("SELECT first_appointment, second_appointment, third_appointment FROM DoctorInformation WHERE doctor_id = ?", (doctor_id,))
+                appointments = cursor.fetchone()
+                appointment_count = sum(appointment is not None for appointment in appointments)
+                if appointments[0] is None:
+                    cursor.execute("UPDATE DoctorInformation SET first_appointment = ? WHERE doctor_id = ?", (appointment_id, doctor_id))
+                elif appointments[1] is None:
+                    cursor.execute("UPDATE DoctorInformation SET second_appointment = ? WHERE doctor_id = ?", (appointment_id, doctor_id))
+                elif appointments[2] is None:
+                    cursor.execute("UPDATE DoctorInformation SET third_appointment = ? WHERE doctor_id = ?", (appointment_id, doctor_id))
+                cursor.execute("UPDATE DoctorInformation SET status = ? WHERE doctor_id = ?", (appointment_count + 1, doctor_id))
+                conn.commit()
+                conn.close()
+
+        accept_button = Button(self, text="Accept Appointment", command=accept_appointment)
+        accept_button.place(x=100, y=130)
+
+    def decline_appointment(self, appointment_id):
+        reason = simpledialog.askstring("Input", "Please enter the reason for declining the appointment:", parent=self)
+        if reason is not None and reason.strip() != "":
+            db_path = "C:/zhengyang/Inti/BCSCUN/Sem 4/Software Engineering/CAD_Database.db"
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(Appointment)")
+            columns = [column[1] for column in cursor.fetchall()]
+            if 'reason' not in columns:
+                cursor.execute("ALTER TABLE Appointment ADD COLUMN reason VARCHAR(1000)")
+            cursor.execute("UPDATE Appointment SET reason = ?, appointment_status = 2 WHERE appointment_id = ?", (reason, appointment_id))
+            conn.commit()
+            conn.close()
+            messagebox.showinfo("Success", "Appointment declined")
+        else:
+            messagebox.showinfo("Error", "Please enter a reason.")
 
 class UploadDoctor(tk.Frame):
     def __init__(self, parent, controller):
@@ -561,7 +702,10 @@ class UploadDoctor(tk.Frame):
                              doctor_username TEXT NOT NULL,
                              doctor_password TEXT NOT NULL,
                              clinic_id INT FOREIGNKEY REFERENCES ClinicInformation(clinic_id),
-                             status INT NOT NULL
+                             status INT NOT NULL,
+                            first_appointment INT FOREIGNKEY REFERENCES Appointment(appointment_id),
+                            second_appointment INT FOREIGNKEY REFERENCES Appointment(appointment_id),
+                            third_appointment INT FOREIGNKEY REFERENCES Appointment(appointment_id)
                         )
                     ''')
             
@@ -854,22 +998,26 @@ class ClinicInfo(tk.Frame):
         display_clinic = cursor.fetchall()
 
         for clinic in display_clinic:
-            clinic_name = Label(self.clinicinfomain_frame, border=0, text=clinic[0], font=("Helvetica", 25, "bold"), background="cornsilk")
-            clinic_name.place(x=10, y=20)
-            clinic_op_time = Label(self.clinicinfomain_frame, border=0, text=f"Operation Time: {clinic[1]}", font=("Helvetica", 13), background="cornsilk")
-            clinic_op_time.place(x=10, y=90)
-            clinic_address = Label(self.clinicinfomain_frame, border=0, text=f"Address: {clinic[2]}", font=("Helvetica", 13), background="cornsilk")
-            clinic_address.place(x=10, y=120)
-            clinic_contact = Label(self.clinicinfomain_frame, border=0, text=f"Contact: {clinic[3]}", font=("Helvetica", 13), background="cornsilk")
-            clinic_contact.place(x=10, y=150)
-            clinic_description = Label(self.clinicinfomain_frame, border=0, text=f"Description: {clinic[4]}", font=("Helvetica", 13), background="cornsilk")
-            clinic_description.place(x=10, y=180)
-            clinic_founder = Label(self.clinicinfomain_frame, border=0, text=f"Founder: {clinic[5]}", font=("Helvetica", 13), background="cornsilk")
-            clinic_founder.place(x=10, y=210)
-            clinic_founder_contact = Label(self.clinicinfomain_frame, border=0, text=f"Founder Contact: {clinic[6]}", font=("Helvetica", 13), background="cornsilk")
-            clinic_founder_contact.place(x=10, y=240)
-            clinic_founder_email = Label(self.clinicinfomain_frame, border=0, text=f"Founder Email: {clinic[7]}", font=("Helvetica", 13), background="cornsilk")
-            clinic_founder_email.place(x=10, y=270)
+            clinic_name = Label(self.clinicinfomain_frame, border=0, text=clinic[0], font=("Helvetica", 30, "bold"), background="cornsilk")
+            clinic_name.place(x=20, y=20)
+            clinic_op_time = Label(self.clinicinfomain_frame, border=0, text=f"Operation Time: {clinic[1]}", font=("Helvetica", 15), background="cornsilk")
+            clinic_op_time.place(x=20, y=140)
+            clinic_address = Label(self.clinicinfomain_frame, border=0, text=f"Address: {clinic[2]}", font=("Helvetica", 15), background="cornsilk", wraplength=900, justify=LEFT)
+            clinic_address.place(x=20, y=180)
+            clinic_contact = Label(self.clinicinfomain_frame, border=0, text=f"Contact: {clinic[3]}", font=("Helvetica", 15), background="cornsilk")
+            clinic_contact.place(x=20, y=300)
+            clinic_description = Label(self.clinicinfomain_frame, border=0, text= clinic[4], font=("Helvetica", 15), background="cornsilk", wraplength=900, justify=LEFT)
+            clinic_description.place(x=20, y=70)
+            clinic_founder_name = Label(self.clinicinfomain_frame, border=0, text=f"Founder: {clinic[5]}", font=("Helvetica", 15), background="cornsilk")
+            clinic_founder_name.place(x=20, y=410)
+            clinic_founder_contact = Label(self.clinicinfomain_frame, border=0, text=f"Founder Contact: {clinic[6]}", font=("Helvetica", 15), background="cornsilk")
+            clinic_founder_contact.place(x=20, y=450)
+            clinic_founder_email = Label(self.clinicinfomain_frame, border=0, text=f"Founder Email: {clinic[7]}", font=("Helvetica", 15), background="cornsilk")
+            clinic_founder_email.place(x=20, y=490)
+            clinic_contactus_label = Label(self.clinicinfomain_frame, border=0, text="Contact Us", font=("Helvetica", 20, "bold"), background="cornsilk")
+            clinic_contactus_label.place(x=20, y=260)
+            clinic_founder_label = Label(self.clinicinfomain_frame, border=0, text="Founder", font=("Helvetica", 20, "bold"), background="cornsilk")
+            clinic_founder_label.place(x=20, y=370)
 
         conn.commit()
         conn.close()
