@@ -549,7 +549,7 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         view_patient_topframe_label = Label(view_patient_topframe, text="Patient Appointment", font=("Helvetica", 25, "bold"), background="cornsilk")
         view_patient_topframe_label.place(x=330, y=20)
 
-        clinicbackTOHome_btn = Button(view_patient_topframe, text = " Back to homepage",background="thistle",command=lambda: view_patient_frame.destroy())
+        clinicbackTOHome_btn = Button(view_patient_topframe, text = " Back to homepage",background="thistle",command=lambda: self.view_patient_frame.destroy())
         clinicbackTOHome_btn.place(height=30, width=110, x=865, y=25)
 
         viewpatientmain_frame = Frame(self.view_patient_frame , background="cornsilk", bd=10, relief=RIDGE)
