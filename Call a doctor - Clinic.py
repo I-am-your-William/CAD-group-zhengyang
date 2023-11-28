@@ -171,8 +171,15 @@ class RegisterClinic(tk.Frame):
         self.clinicdesc_label_entry = Entry(self.register_clinic)
         self.clinicdesc_label_entry.place(height=80, width=350, x=570, y=495)
 
-        nxtTOfounder_btn = Button(self.register_clinic, text = "Next", background="thistle",command=lambda: controller.show_frame(RegisterFounder))
+        nxtTOfounder_btn = Button(self.register_clinic, text = "Next", background="thistle",command=self.go_to_next_page)
         nxtTOfounder_btn.place(height=30, width=100,x=450, y=590)
+
+    def go_to_next_page(self):
+        clinic_information = self.get_clinic_information()
+        if clinic_information[0] == "" or clinic_information[1] == "" or clinic_information[2] == "" or clinic_information[3] == "" or clinic_information[4] == "" or clinic_information[5] == "" or clinic_information[6] == "":
+            messagebox.showerror("Error", "Please fill in all the fields")
+        else:
+            self.controller.show_frame(RegisterFounder)
 
     def get_clinic_information(self):
         clinic_name = self.clinicname_label_entry.get()
@@ -218,8 +225,15 @@ class RegisterFounder(tk.Frame):
         self.founderemail_label_entry = Entry(self.register_founder)
         self.founderemail_label_entry.place(height=30, width=350, x=330, y=475)
 
-        nxtTOsignup_btn = Button(self.register_founder, text = "Next",background="thistle",command=lambda: controller.show_frame(ClinicAccount))
+        nxtTOsignup_btn = Button(self.register_founder, text = "Next",background="thistle",command=self.go_to_account_page)
         nxtTOsignup_btn.place(height=30, width=100,x=450, y=570)
+
+    def go_to_account_page(self):
+        founder_information = self.get_clinic_founder()
+        if founder_information[0] == "" or founder_information[1] == "" or founder_information[2] == "":
+            messagebox.showerror("Error", "Please fill in all the fields")
+        else:
+            self.controller.show_frame(ClinicAccount)
 
     def get_clinic_founder(self):
         founder_name = self.foundername_label_entry.get()
@@ -261,6 +275,11 @@ class ClinicAccount(tk.Frame):
         clinicsignup_btn.place(height=30, width=250, x=380, y=470)
 
     def submit_clinic_registration(self):
+        clinic_username = self.clnregusername_label_entry.get()
+        clinic_password = self.clnloginpassword_label_entry.get()
+        if not clinic_username or not clinic_password:
+            messagebox.showerror("Error", "Please fill in both the username and password fields")
+            return
         clinic_information = self.controller.frames[RegisterClinic].get_clinic_information()
         clinic_founder = self.controller.frames[RegisterFounder].get_clinic_founder()
         clinic_username = self.clnregusername_label_entry.get()
