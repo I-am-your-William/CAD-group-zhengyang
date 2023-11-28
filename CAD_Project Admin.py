@@ -145,6 +145,15 @@ class HomePage(tk.Frame):
 
         self.request_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
 
+        #Refresh Button
+        refresh_btnimage = Image.open("C:/Users/choon/Documents/Chi Ling/BCSCUN/Software Engineering/refresh btn.png")
+        refresh_btnimage = refresh_btnimage.resize((20, 20), Image.ANTIALIAS)
+        refresh_btnimage = ImageTk.PhotoImage(refresh_btnimage)
+
+        refresh_btn = Button(self.right_side_panel, image=refresh_btnimage, background="white", command=self.refresh_request)
+        refresh_btn.image = refresh_btnimage
+        refresh_btn.place(x=470, y=120)
+
         self.load_request(frame_inner)
 
     def load_request(self, frame_inner):
@@ -164,6 +173,20 @@ class HomePage(tk.Frame):
             request_status.place(x=10, y=40)
 
             i += 1
+
+    # Refresh the request list
+
+    def refresh_request(self):
+        for widget in self.request_canvas.winfo_children():
+            widget.destroy()
+
+        # Fetch and display the latest data
+        frame_inner = Frame(self.request_canvas)
+        self.request_canvas.create_window((0, 0), window=frame_inner, anchor="nw")
+        self.load_request(frame_inner)
+
+        # Reset the scrollregion of the Canvas
+        self.request_canvas.update_idletasks()
 
 
     def log_out(self):
