@@ -96,7 +96,6 @@ def pwordpopup():
     pwordpopup.geometry("400x400")
     pwordpopup.title("Password Reset")
     pwordpopup.config(bg="#FFFFFF")
-    pwordpopup.grab_set()
 
     premail=Label(pwordpopup,text="Email Address:",font=("Roboto",16),bg="#FFFFFF")
     premail.place(x=30,y=40)
@@ -132,25 +131,23 @@ def pwordpopup():
 
                 #Format Email
                 email = "Subject: {}\n\n{}".format(subject, message)
-
                 #Get Sender Email
                 password_file = open("pword.txt", "r")
                 password = password_file.readline()
                 password_file.close()
-
                 #SMTP Session
                 s = smtplib.SMTP('smtp.gmail.com', 587)
                 s.starttls()
-
                 #Authentication
                 s.login(sender, password)
-
                 #Send Email
                 s.sendmail(sender, recipient, email)
-
                 #Terminate Session
                 s.quit()
                 messagebox.showinfo("Email Sent", "An email has been sent to the relevant email for security purposes.")
+
+        else:
+            messagebox.showerror("Error", "No input detected.")
 
 
 #F2 Role Select
@@ -188,75 +185,37 @@ def test_validation():
     # Define a dictionary to map each widget to its validation rules
     validation_rules = {
         patunamebox: [
-            {
-                "func": lambda x: x.isalnum(),
-                "error_message": "Username must contain only alphanumeric characters",
-            },
-            {
-                "func": lambda x: 5 < len(x) < 12,
-                "error_message": "Username must be between 5 to 12 characters",
-            }
+            {"func": lambda x: x.isalnum(),"error_message": "Username must contain only alphanumeric characters",},
+            {"func": lambda x: 4 < len(x) < 12,"error_message": "Username must be between 5 to 12 characters",}
         ],
         patpwordbox: [
-            {
-                "func": lambda x: 5 < len(x) < 20,
-                "error_message": "Password must be between 5 to 20 characters",
-            },
+            {"func": lambda x: 4 < len(x) < 20,"error_message": "Password must be between 5 to 20 characters",},
         ],
         patemailaddbox: [
-            {
-                "func": lambda x: validate_email(x,verify=True),
-                "error_message": "Invalid email address",
-            },
+            {"func": lambda x: validate_email(x,verify=True),"error_message": "Invalid email address",},
         ],
         patnamebox: [
-            {
-                "func": lambda x: all(char.isalpha() or char.isspace() for char in x),
-                "error_message": "Name must contain only alphabets",
-            },
+            {"func": lambda x: all(char.isalpha() or char.isspace() for char in x),"error_message": "Name must contain only alphabets",},
         ],
         paticnobox: [
-            {
-                "func": lambda x: x.isdigit(),
-                "error_message": "IC/Mykad number must contain only digits",
-            },
-            {
-                "func": lambda x: len(x) == 12,
-                "error_message": "IC/Mykad number must be 12 digits",
-            }
+            {"func": lambda x: x.isdigit(),"error_message": "IC/Mykad number must contain only digits",},
+            {"func": lambda x: len(x) == 12,"error_message": "IC/Mykad number must be 12 digits",}
         ],
         patcontactnobox: [
-            {
-                "func": lambda x: x.isdigit(),
-                "error_message": "Contact number must contain only digits",
-            },
-            {
-                "func": lambda x: len(x) == 10,
-                "error_message": "Contact number must be 10 digits",
-            }
+            {"func": lambda x: x.isdigit(),"error_message": "Contact number must contain only digits",},
+            {"func": lambda x: len(x) == 10,"error_message": "Contact number must be 10 digits",}
         ],
         patgenderbox: [
-            {
-                "func": lambda x: x in ["Male", "Female"],
-                "error_message": "Invalid gender",
-            },
+            {"func": lambda x: x in ["Male", "Female"],"error_message": "Invalid gender",},
         ],
         patbloodtypebox: [
-            {
-                "func": lambda x: x in ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-                "error_message": "Invalid blood type",
-            },
+            {"func": lambda x: x in ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],"error_message": "Invalid blood type",},
         ],
         pataddressbox: [
-            {
-                "func": lambda x: len(x) > 10,
-                "error_message": "Address cannot be empty",
-            },
+            {"func": lambda x: len(x) > 30,"error_message": "Address cannot be empty",},
         ],
         patallergiesbox: [
-            {
-                "func": lambda x: all(char.isalnum() or char.isspace() for char in x) or len(x) == 0,
-                "error_message": "Invalid allergies",
+            {"func": lambda x: all(char.isalnum() or char.isspace() for char in x) or len(x) == 0,"error_message": "Invalid allergies",
             },
         ],
         }
@@ -273,25 +232,21 @@ def test_validation():
     email = patemailaddbox.get()
     icno = paticnobox.get()
     contactno = patcontactnobox.get()
-
     # Check if the username is already taken
     cursor.execute("SELECT * FROM PatientInfo WHERE username=?", (username,))
     if cursor.fetchone():
         messagebox.showerror("Error", "Username is already taken")
         return False
-
     # Check if the email address is already taken
     cursor.execute("SELECT * FROM PatientInfo WHERE emailadd=?", (email,))
     if cursor.fetchone():
         messagebox.showerror("Error", "Email address is already registered")
         return False
-
     # Check if the IC/Mykad number is already taken
     cursor.execute("SELECT * FROM PatientInfo WHERE icno=?", (icno,))
     if cursor.fetchone():
         messagebox.showerror("Error", "IC/Mykad number is already registered")
         return False
-
     # Check if the contact number is already taken
     cursor.execute("SELECT * FROM PatientInfo WHERE contactno=?", (contactno,))
     if cursor.fetchone():
@@ -312,26 +267,14 @@ def patregister():
         INSERT INTO PatientInfo (username, password, emailadd, fullname, icno, gender, bloodtype, contactno, address, allergies, datecreated)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
-        patunamebox.get(),
-        patpwordbox.get(),
-        patemailaddbox.get(),
-        patnamebox.get(),
-        paticnobox.get(),
-        patgenderbox.get(),
-        patbloodtypebox.get(),
-        patcontactnobox.get(),
-        pataddressbox.get(),
-        patallergiesbox.get(),
-        current_date_time
-    ))
+        patunamebox.get(),patpwordbox.get(),patemailaddbox.get(),patnamebox.get(),paticnobox.get(),patgenderbox.get(),
+        patbloodtypebox.get(),patcontactnobox.get(),pataddressbox.get(),patallergiesbox.get(),current_date_time))
 
     # Commit the changes and close the connection
     db.commit()
     db.close()
 
-    # Optionally, you can show a success message or navigate to another frame
     messagebox.showinfo("Success", "Registration successful!")
-    # Add code to navigate to another frame if needed
 
 
 
@@ -433,12 +376,12 @@ homescroll.place(relx=1, rely=0, relheight=1, anchor=NE)
 checkuplist.configure(yscrollcommand=homescroll.set)
 homescroll.config(command=checkuplist.yview)
 checkuplist.bind("<MouseWheel>", lambda e: checkuplist.yview_scroll(int(-1*(e.delta/120)), "units"))
+
 def fetch_checkups():
     patientname = ptname.get()
     db = sqlite3.connect('CAD_Database.db')  # Put CAD_Database.db in your VSCode workspace folder
     cursor.execute("SELECT patID FROM PatientInfo WHERE fullname = ?", (patientname,))
     result = cursor.fetchone()
-
     if result is not None:
         # Fetch appointments for the patient
         cursor.execute("SELECT * FROM Appointment WHERE patID = ?", (result))
@@ -453,33 +396,24 @@ def fetch_checkups():
             # Fetch clinic name based on clinic_id
             cursor.execute("SELECT clinic_name FROM ClinicInformation WHERE clinic_id = ?", (row[4],))
             clinic_name = cursor.fetchone()[0]
-
             item = {
                 "clinic": clinic_name,
                 "time": row[2],
                 "date": row[3],
-                "status": status
-            }
-
+                "status": status}
             itemframe = Frame(checkuplist, bg="#FFFFFF", highlightbackground="black", highlightthickness=1, width=630, height=80)
             checkuplist.create_window(330, 50 + index * 90, window=itemframe)
 
             clinic_label = Label(itemframe, text=f"Clinic: {clinic_name}", font=("Roboto", 14), bg="#FFFFFF")
             clinic_label.place(relx=0.05, rely=0.2, anchor="w")
-
             time_label = Label(itemframe, text=f"Time: {row[2]}", font=("Roboto", 14), bg="#FFFFFF")
             time_label.place(relx=0.5, rely=0.2, anchor="w")
-
             date_label = Label(itemframe, text=f"Date: {row[3]}", font=("Roboto", 14), bg="#FFFFFF")
             date_label.place(relx=0.05, rely=0.7, anchor="w")
-
             status_label = Label(itemframe, text=f"Status: {status}", font=("Roboto", 14), bg="#FFFFFF")
             status_label.place(relx=0.5, rely=0.7, anchor="w")
 
-        # Adjust the scroll region of the canvas
         checkuplist.update_idletasks()
-        checkuplist.config(scrollregion=checkuplist.bbox("all"))
-
     db.close()
 
 
@@ -516,14 +450,15 @@ def fetch_clinics():
     for row in rows:
         clclist.insert(END, row[1])
 
-
-def goto_location(event):
+def goto_clinic(event):
     selected_clinic = clclist.get(clclist.curselection())
     query = 'SELECT * FROM ClinicInformation WHERE clinic_name = ?'
     cursor.execute(query, (selected_clinic,))
     clinic_info = cursor.fetchone()
-    API_KEY = "AIzaSyAzEbD8V-i5w6RzWH72nVHtx_Nt5aq6LFs"
-    address = clinic_info[5]
+    address = clinic_info[4]
+    key_file = open("gmapikey.txt", "r")
+    API_KEY = key_file.readline()
+    
     prmeter = {
         'key': API_KEY,
         'address': address
@@ -535,12 +470,11 @@ def goto_location(event):
         geometry = response['results'][0]['geometry']
         lat = geometry['location']['lat']
         lon = geometry['location']['lng']
-    
-
+    else:
+        print("Error")
     marker = map_widget.set_position(lat, lon, marker=True)
     marker.set_text(clinic_info[1])
     map_slider.config(value=15)
-
 
 
 def view_clinic_info(event):
@@ -574,19 +508,19 @@ def view_clinic_info(event):
     clcwkhrtxt.place(x=160, y=80)
     clccoorlbl = Label(clcinfoframe, text = "Coordinates:", font = ("Roboto", 16), bg = "#FFFFFF")
     clccoorlbl.place(x=10, y=150)
-    clccoortxt = Label(clcinfoframe, text = clinic_info[3]+","+clinic_info[4], font = ("Roboto", 16), bg = "#FFFFFF")
+    clccoortxt = Label(clcinfoframe, text = clinic_info[3] , font = ("Roboto", 16), bg = "#FFFFFF")
     clccoortxt.place(x=160, y=150)
     clcaddrlbl = Label(clcinfoframe, text = "Address:", font = ("Roboto", 16), bg = "#FFFFFF")
     clcaddrlbl.place(x=10, y=220)
-    clcaddrtxt = Label(clcinfoframe, text = clinic_info[5], font = ("Roboto", 16), bg = "#FFFFFF", wraplength=400, justify=LEFT)
+    clcaddrtxt = Label(clcinfoframe, text = clinic_info[4], font = ("Roboto", 16), bg = "#FFFFFF", wraplength=400, justify=LEFT)
     clcaddrtxt.place(x=160, y=220)
     clccontlbl = Label(clcinfoframe, text = "Contact No.:", font = ("Roboto", 16), bg = "#FFFFFF")
     clccontlbl.place(x=10, y=290)
-    clcconttxt = Label(clcinfoframe, text = clinic_info[6], font = ("Roboto", 16), bg = "#FFFFFF")
+    clcconttxt = Label(clcinfoframe, text = clinic_info[5], font = ("Roboto", 16), bg = "#FFFFFF")
     clcconttxt.place(x=160, y=290)
     clcdescrlbl = Label(clcinfoframe, text = "Description:", font = ("Roboto", 16), bg = "#FFFFFF")
     clcdescrlbl.place(x=10, y=360)
-    clcdescrtxt = Label(clcinfoframe, text = clinic_info[8], font = ("Roboto", 16), bg = "#FFFFFF", wraplength=400, justify=LEFT)
+    clcdescrtxt = Label(clcinfoframe, text = clinic_info[7], font = ("Roboto", 16), bg = "#FFFFFF", wraplength=400, justify=LEFT)
     clcdescrtxt.place(x=160, y=360)
     
     def request_checkup():
@@ -608,7 +542,7 @@ def view_clinic_info(event):
 
         if result is not None:
             patID = result[0]
-            cursor.execute("INSERT INTO Appointment (clinic_id, patID, appdate, apptime, condition, appstatus) VALUES (?, ?, ?, ?, ?, ?)",
+            cursor.execute("INSERT INTO Appointment (clinic_id, patID, appointment_date, appointment_time, symptoms, appstatus) VALUES (?, ?, ?, ?, ?, ?)",
                                 (clinic_id, patID, reqchkdatebox.get(), reqchktimebox.get(), reqchksickbox.get(), 0))
             db.commit()
             messagebox.showinfo("Success", "Checkup booked!")
@@ -634,13 +568,13 @@ def view_clinic_info(event):
     reqchkbtn = Button(reqchkframe, text = "Request Appointment", font = ("Roboto", 16), bg = "#054C76", fg = "White", width = 18, command=lambda: request_checkup())
     reqchkbtn.place(x=180, y=350)
     
-clclist=Listbox(frame6,width=20,height=16,font=("Roboto",16))
+clclist=Listbox(frame6,name="cliniclist", width=20,height=16,font=("Roboto",16))
 canvas2.create_window(125, 450, window = clclist)
 fetch_clinics()
 
 def clinichandler(event):
     view_clinic_info(event)
-    goto_location(event)
+    goto_clinic(event)
 
 clclist.bind("<Double-Button-1>", clinichandler)
 
@@ -648,7 +582,7 @@ clclist.bind("<Double-Button-1>", clinichandler)
 #Main Panel
 canvas2.create_rectangle(300, 100, 1000, 700, fill="#B5DFF0", outline = "#054C76")
 canvas2.create_text(380, 120, text = "Search Here:", font = ("Roboto", 14, "bold"), fill = "#004C7D")
-sbox=Entry(frame6,width=45,font=("Roboto",14))
+sbox=Entry(frame6, name="searchbox", width=45,font=("Roboto",14))
 canvas2.create_window(700, 120, window = sbox)
 sbox.insert(0, "Search clinic by address or coordinates")
 keyin=StringVar()
@@ -668,17 +602,37 @@ sphi=ImageTk.PhotoImage(si)
 sbtn=Button(canvas2,image=sphi,width=30,height=30,bg="#B5DFF0",bd=0,command=lambda:search())
 canvas2.create_window(973, 120, window = sbtn)
 
+def goto_place():
+    key_file = open("gmapikey.txt", "r")
+    API_KEY = key_file.readline()
+    address = sbox.get()
+    prmeter = {
+        'key': API_KEY,
+        'address': address
+    }
+    baseurl = "https://maps.googleapis.com/maps/api/geocode/json?"
+    response = requests.get(baseurl, params=prmeter).json()
+    response.keys()
+    if response['status'] == 'OK':
+        geometry = response['results'][0]['geometry']
+        lat = geometry['location']['lat']
+        lon = geometry['location']['lng']
+    else:
+        print("Error")
+    marker = map_widget.set_position(lat, lon, marker=True)
+    marker.set_text(sbox.get())
+
 def search():
+        address = None
         if sbox.get()!='':
             if keyin.get()=='google':
                 webbrowser.open(f'https://www.google.com/search?q={sbox.get()}')
             elif keyin.get()=='edge':
                 webbrowser.get("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe %s").open(f'https://www.google.com/search?q={sbox.get()}')
             elif keyin.get()=='address':
-                 map_widget.set_address(sbox.get(), marker=True)
-                 map_slider.config(value=15)
+                goto_place()
             elif keyin.get()=='coordinate':
-                 map_widget.set_address(sbox.get(), marker=True)
+                 map_widget.set_position(sbox.get(), marker=True)
                  map_slider.config(value=15)
         else:
             messagebox.showinfo("No Input","No Input Detected.")
@@ -789,8 +743,6 @@ def fetch_prescription():
 
         # Adjust the scroll region of the canvas
         presclist.update_idletasks()
-        presclist.config(scrollregion=presclist.bbox("all"))
-
     db.close()
 
 
@@ -845,12 +797,12 @@ def fetch_hinfo():
             "link": row[3],
         }
 
-        itemframe3 = Frame(hinfolist, bg="#FFFFFF", highlightbackground="black", highlightthickness=1, width=650, height=150)
+        itemframe3 = Frame(hinfolist, bg="#FFFFFF", highlightbackground="black", highlightthickness=1, width=630, height=145)
         itemframe3.bind("<MouseWheel>", lambda e: hinfolist.yview_scroll(int(-1*(e.delta/120)), "units"))
-        hinfolist.create_window(330, 60 + index * 150, window=itemframe3)
+        hinfolist.create_window(330, 63 + index * 150, window=itemframe3)
 
         title_label = Label(itemframe3, text=f"Title: {row[1]}", font=("Roboto", 12), bg="#FFFFFF")
-        title_label.place(relx=0, rely=0.1, anchor="w")
+        title_label.place(relx=0, rely=0.15, anchor="w")
 
         content_label = Label(itemframe3, text=f"Content: {row[2]}", font=("Roboto", 12), bg="#FFFFFF")
         content_label.place(relx=0, rely=0.5, anchor="w")
@@ -860,12 +812,10 @@ def fetch_hinfo():
 
         # Adjust the scroll region of the canvas
         hinfolist.update_idletasks()
-        hinfolist.config(scrollregion=hinfolist.bbox("all"))
-
     db.close()
 
 fetch_hinfo()
 
 
-show_frame(frame6)
+show_frame(frame1)
 root.mainloop()
