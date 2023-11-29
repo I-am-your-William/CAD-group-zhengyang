@@ -108,6 +108,9 @@ class LoginClinic(tk.Frame):
                     self.controller.show_frame(ClinicPending)
                 else:
                     messagebox.showerror("Error", "Invalid Username or Password")
+                    return
+                self.clnloginusername_entry.delete(0, 'end')
+                self.clnloginpassword_entry.delete(0, 'end')
             else:
                 messagebox.showerror("Error", "Invalid Username or Password")
 
@@ -168,8 +171,15 @@ class RegisterClinic(tk.Frame):
         self.clinicdesc_label_entry = Entry(self.register_clinic)
         self.clinicdesc_label_entry.place(height=80, width=350, x=570, y=495)
 
-        nxtTOfounder_btn = Button(self.register_clinic, text = "Next", background="thistle",command=lambda: controller.show_frame(RegisterFounder))
+        nxtTOfounder_btn = Button(self.register_clinic, text = "Next", background="thistle",command=self.go_to_next_page)
         nxtTOfounder_btn.place(height=30, width=100,x=450, y=590)
+
+    def go_to_next_page(self):
+        clinic_information = self.get_clinic_information()
+        if clinic_information[0] == "" or clinic_information[1] == "" or clinic_information[2] == "" or clinic_information[3] == "" or clinic_information[4] == "" or clinic_information[5] == "" or clinic_information[6] == "":
+            messagebox.showerror("Error", "Please fill in all the fields")
+        else:
+            self.controller.show_frame(RegisterFounder)
 
     def get_clinic_information(self):
         clinic_name = self.clinicname_label_entry.get()
@@ -215,8 +225,15 @@ class RegisterFounder(tk.Frame):
         self.founderemail_label_entry = Entry(self.register_founder)
         self.founderemail_label_entry.place(height=30, width=350, x=330, y=475)
 
-        nxtTOsignup_btn = Button(self.register_founder, text = "Next",background="thistle",command=lambda: controller.show_frame(ClinicAccount))
+        nxtTOsignup_btn = Button(self.register_founder, text = "Next",background="thistle",command=self.go_to_account_page)
         nxtTOsignup_btn.place(height=30, width=100,x=450, y=570)
+
+    def go_to_account_page(self):
+        founder_information = self.get_clinic_founder()
+        if founder_information[0] == "" or founder_information[1] == "" or founder_information[2] == "":
+            messagebox.showerror("Error", "Please fill in all the fields")
+        else:
+            self.controller.show_frame(ClinicAccount)
 
     def get_clinic_founder(self):
         founder_name = self.foundername_label_entry.get()
@@ -258,6 +275,11 @@ class ClinicAccount(tk.Frame):
         clinicsignup_btn.place(height=30, width=250, x=380, y=470)
 
     def submit_clinic_registration(self):
+        clinic_username = self.clnregusername_label_entry.get()
+        clinic_password = self.clnloginpassword_label_entry.get()
+        if not clinic_username or not clinic_password:
+            messagebox.showerror("Error", "Please fill in both the username and password fields")
+            return
         clinic_information = self.controller.frames[RegisterClinic].get_clinic_information()
         clinic_founder = self.controller.frames[RegisterFounder].get_clinic_founder()
         clinic_username = self.clnregusername_label_entry.get()
@@ -474,11 +496,14 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         self.patient_label = tk.Label(self.clinic_homepage, text="Patient", font=(25), background="white")
         self.patient_label.place(height=70, width=480, x=440, y=160)
 
+        self.refreshappointment_btn = tk.Button(self.clinic_homepage, text="Refresh", background="cornsilk", command=self.refreshappointment, borderwidth=0)
+        self.refreshappointment_btn.place(height=20, width=60, x=850, y=240)
+
         self.appointmentlist_canvas = Canvas(self.clinic_homepage, background="white", bd=0, highlightthickness=0)
-        self.appointmentlist_canvas.place(height=350, width=480, x=440, y=260)
+        self.appointmentlist_canvas.place(height=350, width=460, x=440, y=260)
 
         self.appointmentlist_scrollbar = Scrollbar(self.clinic_homepage, orient="vertical", command=self.appointmentlist_canvas.yview)
-        self.appointmentlist_scrollbar.place(height=350, width=20, x=920, y=260)
+        self.appointmentlist_scrollbar.place(height=350, width=20, x=900, y=260)
 
         self.appointmentlist_canvas.configure(yscrollcommand=self.appointmentlist_scrollbar.set)
 
@@ -487,6 +512,12 @@ class ClinicHomepage(LoginClinic, tk.Frame):
 
         self.appointmentframe_inner.bind('<Configure>', lambda e: self.appointmentlist_canvas.configure(scrollregion=self.appointmentlist_canvas.bbox("all")))
 
+        self.showappointmentdetails()
+
+    def refreshappointment(self):
+        self.appointmentframe_inner.destroy()
+        self.appointmentframe_inner = Frame(self.appointmentlist_canvas, background="white")
+        self.appointmentlist_canvas.create_window((0, 0), window=self.appointmentframe_inner, anchor="nw")
         self.showappointmentdetails()
 
     def showappointmentdetails(self):
@@ -501,12 +532,12 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         display_appointment = cursor.fetchall()
         i=0
         for appointment in display_appointment:
-            appointment_frame = Frame(self.appointmentframe_inner, background="white", highlightbackground="orange", highlightthickness=1, width=458, height=70)
+            appointment_frame = Frame(self.appointmentframe_inner, background="white", highlightbackground="orange", highlightthickness=1, width=459, height=70)
             appointment_frame.grid(row=i, column=0, padx=1, pady=1)
             patient_name = Label(appointment_frame, text=appointment[1], font=(15), background="white")
             patient_name.place(x=10, y=5)
-            symptoms = Label(appointment_frame, text=appointment[0], font=(15), background="white")
-            symptoms.place(x=10, y=30)
+            symptoms = Label(appointment_frame, text="Symptoms: " + appointment[0], font=(15), background="white")
+            symptoms.place(x=10, y=35)
             view_patient_button = Button(appointment_frame, text="View Patient", command=lambda appointment_id=appointment[3]: self.viewpatient(appointment_id), background="white", fg="blue", borderwidth=0)
             view_patient_button.place(height=20, width=70, x=380, y=25)
             i+=1
@@ -528,42 +559,48 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         cursor.execute("SELECT symptoms, appointment_date, appointment_time FROM Appointment WHERE clinic_id = ? AND appointment_id = ?", (clinic_id, appointment_id))
         display_appointment = cursor.fetchall()
         conn.close()
-        # Rest of your code...
-        view_patient_frame = Frame(self.clinic_homepage, background="white")
-        view_patient_frame.place(height=700, width=1000, x=0, y=0)
+        self.view_patient_frame = Frame(self.clinic_homepage, background="white")
+        self.view_patient_frame.place(height=700, width=1000, x=0, y=0)
 
-        view_patient_topframe = Frame(view_patient_frame, background="cornsilk")
+        view_patient_topframe = Frame(self.view_patient_frame, background="cornsilk")
         view_patient_topframe.place(height=90, width=1000, x=0, y=0)
 
-        view_patient_topframe_label = Label(view_patient_topframe, text="Patient Information", font=("Helvetica", 25, "bold"), background="cornsilk")
+        view_patient_topframe_label = Label(view_patient_topframe, text="Patient Appointment", font=("Helvetica", 25, "bold"), background="cornsilk")
         view_patient_topframe_label.place(x=330, y=20)
 
-        clinicbackTOHome_btn = Button(view_patient_topframe, text = " Back to homepage",background="thistle",command=lambda: view_patient_frame.destroy())
+        clinicbackTOHome_btn = Button(view_patient_topframe, text = " Back to homepage",background="thistle",command=lambda: self.view_patient_frame.destroy())
         clinicbackTOHome_btn.place(height=30, width=110, x=865, y=25)
 
-        viewpatientmain_frame = Frame(view_patient_frame , background="cornsilk")
+        viewpatientmain_frame = Frame(self.view_patient_frame , background="cornsilk", bd=10, relief=RIDGE)
         viewpatientmain_frame.place(height=530, width=915, x=40, y=130)
 
         for patient in display_patient:
-            patient_name = Label(viewpatientmain_frame, text="Patient Name: " + str(patient[0]), font=(15), background="cornsilk")
-            patient_name.place(x=100, y=30)
-            patient_contact = Label(viewpatientmain_frame, text="Patient Contact: " + str(patient[1]), font=(15), background="cornsilk")
-            patient_contact.place(x=100, y=80)
+            patient_name = Label(viewpatientmain_frame, text="Patient Name: " + str(patient[0]), font=("Arial", 15), background="cornsilk")
+            patient_name.place(x=20, y=20)
+            patient_contact = Label(viewpatientmain_frame, text="Patient Contact: " + str(patient[1]), font=("Arial", 15), background="cornsilk")
+            patient_contact.place(x=20, y=70)
         for appointment in display_appointment:
-            symptoms = Label(viewpatientmain_frame, text="Symptoms: " + str(appointment[0]), font=(15), background="cornsilk")
-            symptoms.place(x=100, y=130)
-            appointment_date = Label(viewpatientmain_frame, text="Appointment Date: " + str(appointment[1]), font=(15), background="cornsilk")
-            appointment_date.place(x=100, y=180)
-            appointment_time = Label(viewpatientmain_frame, text="Appointment Time: " + str(appointment[2]), font=(15), background="cornsilk")
-            appointment_time.place(x=100, y=230)
+            symptoms = Label(viewpatientmain_frame, text="Symptoms: " + str(appointment[0]), font=("Arial", 15), background="cornsilk")
+            symptoms.place(x=20, y=120)
+            appointment_date = Label(viewpatientmain_frame, text="Appointment Date: " + str(appointment[1]), font=("Arial", 15), background="cornsilk")
+            appointment_date.place(x=20, y=170)
+            appointment_time = Label(viewpatientmain_frame, text="Appointment Time: " + str(appointment[2]), font=("Arial", 15), background="cornsilk")
+            appointment_time.place(x=20, y=220)
 
-            decline_button = Button(viewpatientmain_frame, text="Decline", command=lambda: self.decline_appointment(appointment_id=appointment_id),background="white", fg="blue", borderwidth=0)
-            decline_button.place(height=20, width=70, x=100, y=280)
+            appointment_image = Image.open("C:/Users/MyAcer/Desktop/Software engineering/makeappointment.PNG")
+            label_width, label_height = 350, 250
+            appointment_image = appointment_image.resize((label_width, label_height), Image.Resampling.LANCZOS)
+            appointment_image = ImageTk.PhotoImage(appointment_image)
+            appointment_label = Label(viewpatientmain_frame, image=appointment_image)
+            appointment_label.image = appointment_image
+            appointment_label.place(height=label_height, width=label_width, x=510, y=20)
 
-            choosedoctor_button = Button(viewpatientmain_frame, text="Choose Doctor", command=lambda: self.choose_doctor(appointment_id=appointment_id),background="white", fg="blue", borderwidth=0)
-            choosedoctor_button.place(height=20, width=170, x=200, y=280)
+            decline_button = Button(viewpatientmain_frame, text="Decline", command=lambda: self.decline_appointment(appointment_id=appointment_id),background="thistle", borderwidth=0, font=("Arial", 13))
+            decline_button.place(height=40, width=410, x=20, y=290)
 
-    
+            choosedoctor_button = Button(viewpatientmain_frame, text="Choose Doctor", command=lambda: self.choose_doctor(appointment_id=appointment_id),background="thistle", borderwidth=0, font=("Arial", 13))
+            choosedoctor_button.place(height=40, width=410, x=450, y=290)
+
     def choose_doctor(self, appointment_id):
         clinic_id = self.clinic_id
         db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database2.db"
@@ -572,8 +609,8 @@ class ClinicHomepage(LoginClinic, tk.Frame):
         cursor.execute("SELECT doctor_id, doctor_name, doctor_qualification FROM DoctorInformation WHERE status IN (0, 1, 2) AND clinic_id = ?", (clinic_id,))
         rows = cursor.fetchall()
         doctors = {f"{row[1]} ({row[2]})": row[0] for row in rows}
-        doctor_combobox = ttk.Combobox(self, values=list(doctors.keys()), width=100)
-        doctor_combobox.place(x=100, y=100)
+        doctor_combobox = ttk.Combobox(self, values=list(doctors.keys()), width=138)
+        doctor_combobox.place(x=68, y=510)
 
         def accept_appointment():
             selected_doctor = doctor_combobox.get()
@@ -593,10 +630,14 @@ class ClinicHomepage(LoginClinic, tk.Frame):
                     cursor.execute("UPDATE DoctorInformation SET third_appointment = ? WHERE doctor_id = ?", (appointment_id, doctor_id))
                 cursor.execute("UPDATE DoctorInformation SET status = ? WHERE doctor_id = ?", (appointment_count + 1, doctor_id))
                 conn.commit()
-                conn.close()
+                messagebox.showinfo("Success", "Appointment Accepted")
+                doctor_combobox.destroy()
+                accept_button.destroy()
+                self.view_patient_frame.destroy()
 
-        accept_button = Button(self, text="Accept Appointment", command=accept_appointment)
-        accept_button.place(x=100, y=130)
+        accept_button = Button(self, text="Accept Appointment", command=accept_appointment, background="thistle", borderwidth=0, font=("Arial", 13))
+        accept_button.place(height=40, width=842, x=68, y=550)
+
 
     def decline_appointment(self, appointment_id):
         reason = simpledialog.askstring("Input", "Please enter the reason for declining the appointment:", parent=self)
@@ -612,8 +653,9 @@ class ClinicHomepage(LoginClinic, tk.Frame):
             conn.commit()
             conn.close()
             messagebox.showinfo("Success", "Appointment declined")
+            self.view_patient_frame.destroy()
         else:
-            messagebox.showinfo("Error", "Please enter a reason.")
+            messagebox.showerror("Error", "Please enter a reason.")
 
 class UploadDoctor(tk.Frame):
     def __init__(self, parent, controller):
@@ -626,7 +668,7 @@ class UploadDoctor(tk.Frame):
         self.clinictop_frame = Frame(self.upload_doctor , background="cornsilk")
         self.clinictop_frame.place(height=90, width=1000, x=0, y=0)
 
-        heading_label = Label(self.upload_doctor, text="Uplaod Doctor", font=("Helvetica", 25, "bold"), background="cornsilk")
+        heading_label = Label(self.upload_doctor, text="Upload Doctor", font=("Helvetica", 25, "bold"), background="cornsilk")
         heading_label.place(x=130, y=20)
 
         clinicbackTOHome_btn = Button(self.upload_doctor, text = " Back to homepage",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
@@ -887,6 +929,11 @@ class ManageDoctor(tk.Frame):
         db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database2.db"
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
+        cursor.execute("SELECT status FROM DoctorInformation WHERE doctor_id = ?", (doctor_id,))
+        status = cursor.fetchone()[0]
+        if status != 0:
+            messagebox.showerror("Delete Unsuccessful", "Doctor having appointment now")
+            return
         cursor.execute("DELETE FROM DoctorInformation WHERE doctor_id = ?", (doctor_id,))
         conn.commit()
         conn.close()
@@ -923,6 +970,9 @@ class DoctorList(tk.Frame):
         clinicbackTOHome_btn = Button(self.doctor_list, text = " Back to homepage",background="thistle",command=lambda: controller.show_frame(ClinicHomepage))
         clinicbackTOHome_btn.place(height=30, width=110, x=865, y=25)
 
+        self.refreshdoctor_btn = Button(self.doctor_list, text="Refresh", background="white", command=self.refreshdoctor, borderwidth=0)
+        self.refreshdoctor_btn.place(height=20, width=60, x=850, y=100)
+
         self.doctorlist_canvas = Canvas(self.doctor_list, background="cornsilk")
         self.doctorlist_canvas.place(height=550, width=935, x=30, y=120)
 
@@ -937,28 +987,45 @@ class DoctorList(tk.Frame):
 
         self.showdoctordetails()
 
+    def refreshdoctor(self):
+        self.doctorframe_inner.destroy()
+        self.doctorframe_inner = Frame(self.doctorlist_canvas, background="cornsilk")
+        self.doctorlist_canvas.create_window((0, 0), window=self.doctorframe_inner, anchor="nw")
+        self.showdoctordetails()
+
     def showdoctordetails(self):
         clinic_id = self.clinic_id
         db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database2.db"
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT doctor_name, doctor_qualification, doctor_registration_no, doctor_contact, doctor_email FROM DoctorInformation WHERE clinic_id = ?", (clinic_id,))
+        cursor.execute("SELECT doctor_id , doctor_name, doctor_qualification, doctor_registration_no, doctor_contact, doctor_email, status FROM DoctorInformation WHERE clinic_id = ?", (clinic_id,))
         display_doctor = cursor.fetchall()
         i=0
 
         def open_doctor_mainpage(doctor_id):
-            def validate_password(entered_password,doctor_id=doctor_id):
+            def validate_password(entered_password, doctor_id=doctor_id):
                 conn = sqlite3.connect(db_path)
                 cursor = conn.cursor()
                 cursor.execute("SELECT doctor_password FROM DoctorInformation WHERE doctor_id = ?", (doctor_id,))
+                print(doctor_id)
                 stored_password = cursor.fetchone()
-                conn.close()
 
-                if entered_password =="" :
-                    messagebox.showerror("Error", "Please enter password")
-                else:
+                if entered_password == "":
+                    messagebox.showerror("Error", "Please enter the password")
+                elif stored_password is None:
+                    messagebox.showerror("Error", "Doctor ID not found")  # Handle if doctor_id is not found
+                elif entered_password == stored_password[0]:
+                    messagebox.showinfo("Success", "Login Successful")
+                    self.controller.doctor_id = doctor_id
+                    doctor_mainpage = self.controller.frames[DoctorMainpage]
+                    doctor_mainpage.set_doctor_id(doctor_id) 
+                    doctor_mainpage.set_doctor_name(doctor_name)
                     self.controller.show_frame(DoctorMainpage)
-                    password_window.destroy()
+
+                else:
+                    messagebox.showerror("Error", "Incorrect Password")
+
+                conn.close()
 
             password_window = tk.Toplevel(self)
             password_window.title("Password Validation")
@@ -971,10 +1038,12 @@ class DoctorList(tk.Frame):
 
             submit_button = Button(password_window, text="Submit", command=lambda: validate_password(password_entry.get()))
             submit_button.pack()
+
             
 
-        for i,doctor in enumerate(display_doctor):
-            doctor_id=doctor[0]
+
+        for doctor in display_doctor:
+            doctor_id = doctor[0]
             doctor_frame = Frame(self.doctorframe_inner, background="cornsilk", highlightbackground="orange", highlightthickness=3, width=930, height=200)
             doctor_frame.grid(row=i, column=1, padx=1, pady=1)
             doctor_name = Label(doctor_frame, border=0, text=doctor[0], font=("Helvetica", 16, "bold"), background="cornsilk")
@@ -987,13 +1056,16 @@ class DoctorList(tk.Frame):
             doctor_contact.place(x=10, y=120)
             doctor_email = Label(doctor_frame, border=0, text=f"Email: {doctor[4]}", font=("Helvetica", 13), background="cornsilk")
             doctor_email.place(x=10, y=150)
+            status_text = "BUSY" if doctor[6] == 3 else "AVAILABLE"
+            status_color = "red" if doctor[6] == 3 else "green"
+            doctor_status = Label(doctor_frame, border=0, text=status_text, font=("Helvetica", 14, "bold"), background="cornsilk", fg=status_color)
+            doctor_status.place(x=800, y=20)
+            doctor_page_button=Button(doctor_frame, text="Login", command=lambda id=doctor_id: open_doctor_mainpage(id))
+            doctor_page_button.place( x=400, y=90)
             i+=1
+            
             self.doctorframe_inner.update_idletasks() 
             self.doctorlist_canvas.configure(scrollregion=self.doctorlist_canvas.bbox("all"))
-
-            doctorpage = Button(doctor_frame, text="Login", command=lambda id=doctor_id: open_doctor_mainpage(id))
-            doctorpage.place(x=400, y=90)
-
         conn.commit()
         conn.close()
 
@@ -1056,17 +1128,24 @@ class ClinicInfo(tk.Frame):
         conn.close()
 
 class DoctorMainpage(tk.Frame):
+    def set_doctor_id(self, doctor_id):
+        self.doctor_id = doctor_id
+    
+    def set_doctor_name(self, doctor_name):
+        self.doctor_name = doctor_name
+
     def __init__(self,parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller=controller
-        doctor_id = None  
-        self.doctor_id=doctor_id
+        self.doctor_id = None
+        self.doctor_name=None
 
+    
 
-        top_frame = Frame(self, background="light grey")
-        top_frame.place(height=60, width=1300, x=1, y=1)
+        self.top_frame = Frame(self, background="light grey")
+        self.top_frame.place(height=60, width=1300, x=1, y=1)
 
-        log_out_btn = Button(top_frame, text=" Log Out", background="white", command=lambda: controller.show_frame(ClinicHomepage))
+        log_out_btn = Button(self.top_frame, text=" Log Out", background="white", command=lambda: controller.show_frame(ClinicHomepage))
         log_out_btn.place(height=30, width=100, x=800, y=10)
 
         # Create a canvas that can fit the above image
@@ -1077,59 +1156,93 @@ class DoctorMainpage(tk.Frame):
         # Create a PhotoImage from the resized image
         image = ImageTk.PhotoImage(image)
 
-        label = Label(top_frame, image=image)
+        label = Label(self.top_frame, image=image)
         label.image = image  # Keep a reference to the image to prevent garbage collection
         label.place(height=label_height, width=label_width, x=15, y=15)
 
-        label2 = Label(top_frame, text="Doctor Mainpage", font=("Helvetica", 20), background="light grey")
+        label2 = Label(self.top_frame, text="Doctor Mainpage", font=("Helvetica", 20), background="light grey")
         label2.place(height=30, width=300, x=500, y=10)
 
-        #######left side panel########
-        left_side_panel = Frame(self, background="light grey")
-        left_side_panel.place(height=550, width=300, x=55, y=100)
-
-        patient_btn = Button(self, text="Patient", font=(None, 20), background="white", command=lambda: self.master.show_frame("PatientInfoFrame"))
-        patient_btn.place(height=70,width=200, x=100, y=160)
-
-        History_btn = Button ( self, text = " History ", font=(20),background="white")
-        History_btn.place(height=70,width=200, x=100, y=270)
 
 
 
         #right side panel
-        right_side_panel = Frame(self, background="light grey")
-        right_side_panel.place(height=550, width=870, x=390, y=100)
+        self.right_side_panel = Frame(self, background="light grey")
+        self.right_side_panel.place(height=550, width=870, x=55, y=100)
 
-        lfs_right_panel =Frame(self , bg="white")
-        lfs_right_panel.place(height=500 , width=400 , x=410 , y=120)
+        self.lfs_right_panel =Canvas(self , bg="white")
+        self.lfs_right_panel.place(height=500 , width=400 , x=75 , y=120)
 
-        rhs_right_panel =Frame(self, bg="white")
-        rhs_right_panel.place(height=500 , width=400 , x=840 , y=120)
+        label123=Button(self.lfs_right_panel, text="Appointment", font=("Helvetica", 10),background="#FFFFFF",command=self.fetch_checkups)
+        label123.pack()
+
+        self.rhs_right_panel =Frame(self, bg="white")
+        self.rhs_right_panel.place(height=500 , width=400 , x=495 , y=120)
 
         New_Prescription=Button(self, text="New Prescription",bg="#CBC3E3",fg="white",font="Roboto 10",command=lambda: controller.show_frame(PrescriptionPage))
-        New_Prescription.place(width=380,height=50,x=850,y=150)
+        New_Prescription.place(width=380,height=50,x=510,y=150)
 
         View_Prescription=Button(self, text="View Prescription",bg="#CBC3E3",fg="white",font="Roboto 10",command=lambda: controller.show_frame(ViewPrescriptionsPage))
-        View_Prescription.place(width=380,height=50,x=850,y=200)
+        View_Prescription.place(width=380,height=50,x=510,y=200)
         
         Manage_Prescription=Button(self, text="Manage Prescription",bg="#CBC3E3",fg="white",font="Roboto 10",command=lambda: controller.show_frame(ManagePrescriptionsPage))
-        Manage_Prescription.place(width=380,height=50,x=850,y=250)
+        Manage_Prescription.place(width=380,height=50,x=510,y=250)
 
-
-
-        Appointment_upcoming=Label(lfs_right_panel, text="Appointment Upcoming", font=("Helvetica", 10),background="#FFFFFF")
-        Appointment_upcoming.pack()
-
-        Appointment_Pending=Button(lfs_right_panel, text="Appointment 1", font=("Helvetica", 10),background="#FFFFFF")
-        Appointment_Pending.pack() 
-
-        Appointment_Pending=Button(lfs_right_panel, text="Appointment 2", font=("Helvetica", 10),background="#FFFFFF")
-        Appointment_Pending.pack() 
-
-
-
-        Prescription=Label(rhs_right_panel, text="Prescription", font=("Helvetica", 10),background="#FFFFFF")
+        Prescription=Label(self.rhs_right_panel, text="Prescription", font=("Helvetica", 10),background="#FFFFFF")
         Prescription.pack()
+        
+
+    def fetch_checkups(self):
+        print("hello")
+        doctor_name = self.doctor_name.cget("text")
+        doctor_id = self.doctor_id
+        db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database.db"
+        
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM DoctorInformation WHERE doctor_id = ?", (doctor_id,))
+        result = cursor.fetchone()
+
+        if result is not None:
+            cursor.execute("SELECT * FROM Appointment WHERE doctor_id = ?", (doctor_id,))
+            rows = cursor.fetchall()
+            
+            for index, row in enumerate(rows):  # Corrected the enumerate usage
+                
+                cursor.execute("SELECT clinic_name FROM ClinicInformation WHERE clinic_id = ?", (row[4],))
+                clinic_name = cursor.fetchone()[0]
+
+                item = {
+                    "clinic": clinic_name,
+                    "time": row[2],
+                    "date": row[3],
+                    
+                }
+                print(item)
+
+                itemframe = Frame(self.lfs_right_panel, bg="#FFFFFF", highlightbackground="black", highlightthickness=1, width=400, height=80)
+                self.lfs_right_panel.create_window(330, 100 + index * 90, window=itemframe)
+
+                clinic_label = Label(itemframe, text=f"Clinic: {clinic_name}", font=("Roboto", 14), bg="#FFFFFF")
+                clinic_label.place(relx=0.05, rely=0.2, anchor="w")
+
+                time_label = Label(itemframe, text=f"Time: {row[2]}", font=("Roboto", 14), bg="#FFFFFF")
+                time_label.place(relx=0.5, rely=0.2, anchor="w")
+
+                date_label = Label(itemframe, text=f"Date: {row[3]}", font=("Roboto", 14), bg="#FFFFFF")
+                date_label.place(relx=0.05, rely=0.7, anchor="w")
+
+                
+            # Adjust the scroll region of the canvas
+            self.lfs_right_panel.update_idletasks()
+            self.lfs_right_panel.config(scrollregion=self.lfs_right_panel.bbox("all"))
+
+        conn.close()
+
+
+        
+
 
         
         
@@ -1164,39 +1277,60 @@ class PrescriptionPage(tk.Frame):
         self.prescription_content_entry = Text(main_frame, wrap=tk.WORD)
         self.prescription_content_entry.place(height=150, width=600, x=250, y=120)
 
-        upload_btn = Button(main_frame, text="Upload Prescription", background="#F9F3CC", font=("Helvetica", 20), command=self.upload)
-        upload_btn.place(height=50, width=200, x=350, y=300)
+        
+        self.choose_patient_button = Button(main_frame, text="Choose Patient", background="#F9F3CC", font=("Helvetica", 15), command=self.choose_patient)
+        self.choose_patient_button.place(height=40, width=150, x=50, y=400)
 
-    def upload(self):
+    def choose_patient(self):
+        db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database2.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM PatientInfo")
+        patients = cursor.fetchall()
+
+        patients_dict = {f"{pat[1]} (ID: {pat[0]})": pat[0] for pat in patients}
+        patient_combobox = ttk.Combobox(self, values=list(patients_dict.keys()), width=138)
+        patient_combobox.place(x=68, y=540)
+
+        def assign_patient_to_prescription():
+            selected_patient = patient_combobox.get()
+            if selected_patient == "":
+                messagebox.showerror("Error", "Please choose a patient.")
+            else:
+                patient_id = patients_dict[selected_patient]
+                # Perform the prescription upload with the associated patient_id
+                self.upload_prescription_with_patient(patient_id)
+
+            patient_combobox.destroy()
+            self.choose_patient_button.destroy()
+
+        accept_button = Button(self, text="Assign Patient to Prescription", background="#F9F3CC", font=("Helvetica", 15), command=assign_patient_to_prescription)
+        accept_button.place(x=68, y=560)
+
+    def upload_prescription_with_patient(self, patient_id):
         prescription_title = self.prescription_title_entry.get()
         prescription_content = self.prescription_content_entry.get("1.0", "end-1c")
-
+        
         if len(prescription_title) == 0 or len(prescription_content) == 0:
             messagebox.showinfo("Submit", "Both fields need to be populated, nothing saved")
-        else:
-            db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database2.db"
+            return
 
-            conn = sqlite3.connect(db_path)
-            c = conn.cursor()
+        # Insert prescription into the database with associated patient_id
+        db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database.db"
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
 
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS PRESCRIPTIONS (
-                    Prescription_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Title VARCHAR(100) NOT NULL,
-                    Content TEXT NOT NULL
-                )
-            """)
+        c.execute(
+            "INSERT INTO PRESCRIPTIONS (Title, Content, patID) VALUES (?, ?, ?)",
+            (prescription_title, prescription_content, patient_id),
+        )
 
-            c.execute(
-                "INSERT INTO PRESCRIPTIONS (Title, Content) VALUES (?, ?)",
-                (prescription_title, prescription_content),
-            )
+        conn.commit()
+        conn.close()
 
-            conn.commit()
-            conn.close()
-
-            messagebox.showinfo("Data saved", "Prescription saved successfully!")
-            self.clearPrescriptionInput()
+        messagebox.showinfo("Data saved", "Prescription saved successfully!")
+        self.clearPrescriptionInput()
 
     def clearPrescriptionInput(self):
         self.prescription_title_entry.delete(0, tk.END)
@@ -1224,12 +1358,12 @@ class ViewPrescriptionsPage(tk.Frame):
         self.load_prescriptions()
 
     def load_prescriptions(self):
-        db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database2.db"  # Adjust this path accordingly
+        db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database.db"  # Adjust this path accordingly
 
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
 
-        c.execute("SELECT Title, Content FROM PRESCRIPTIONS")  # Query to fetch prescriptions
+        c.execute("SELECT Title, Content FROM Prescriptions")  # Query to fetch prescriptions
         prescriptions = c.fetchall()
 
         conn.close()
@@ -1321,7 +1455,7 @@ class ManagePrescriptionsPage(tk.Frame):
         tree_prescriptions.heading('1', text='ID')
         tree_prescriptions.heading('2', text='Title')
         tree_prescriptions.heading('3', text='Content')
-        tree_prescriptions.heading('4', text='Link')
+        
 
         tree_prescriptions.tag_configure('odd', background="#F9F3CC")
         tree_prescriptions.tag_configure('even', background="white") 
@@ -1331,7 +1465,7 @@ class ManagePrescriptionsPage(tk.Frame):
         tree_prescriptions.bind('<ButtonRelease-1>', self.select_item)
 
     def load_prescriptions(self):
-        db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database2.db"  # Adjust this path accordingly
+        db_path = "C:/Users/MyAcer/Desktop/Software engineering/CAD_Database.db"  # Adjust this path accordingly
 
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
@@ -1432,7 +1566,6 @@ class ManagePrescriptionsPage(tk.Frame):
         self.content_entry.insert('1.0', values[2])
         self.link_entry.delete(0, END)
         self.link_entry.insert(0, values[3])
-
 
 if __name__ == "__main__":
     app = Application()
